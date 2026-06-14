@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse,
-  Users, Truck, BarChart3, Settings, UserCog, Tag, History
+  Users, Truck, BarChart3, Settings, UserCog, Tag, History, HelpCircle
 } from 'lucide-react'
 
 // Définition centralisée de tous les modules de l'application.
@@ -26,13 +26,17 @@ export const MODULES: ModuleDef[] = [
   { key: 'utilisateurs', to: '/utilisateurs', label: 'Utilisateurs', icon: UserCog, adminOnly: true },
   { key: 'audit', to: '/audit', label: "Journal d'audit", icon: History, adminOnly: true },
   { key: 'parametres', to: '/parametres', label: 'Paramètres', icon: Settings, adminOnly: true },
+  { key: 'aide', to: '/aide', label: 'Aide', icon: HelpCircle },
 ]
 
 // Modules pouvant être attribués librement au rôle Gestionnaire
-export const MODULES_ATTRIBUABLES = MODULES.filter(m => !m.adminOnly)
+export const MODULES_ATTRIBUABLES = MODULES.filter(m => !m.adminOnly && m.key !== 'aide')
 
 export function getNavPourRole(isAdmin: boolean, permissions?: string[]): ModuleDef[] {
+  const aideModule = MODULES.find(m => m.key === 'aide')!
   if (isAdmin) return MODULES
   const perms = permissions || []
-  return MODULES_ATTRIBUABLES.filter(m => perms.includes(m.key))
+  const navGestionnaire = MODULES_ATTRIBUABLES.filter(m => perms.includes(m.key))
+  // Aide toujours visible pour tous les rôles
+  return [...navGestionnaire, aideModule]
 }

@@ -3,12 +3,13 @@ import { supabase } from '../lib/supabase'
 import { useEntreprise } from '../lib/entreprise'
 import { useDevise } from '../lib/devise'
 import { StatsDashboard } from '../types'
-import { TrendingUp, ShoppingCart, Package, Wallet, BarChart3, AlertTriangle, FileDown, Calendar } from 'lucide-react'
+import { TrendingUp, ShoppingCart, Package, Wallet, BarChart3, AlertTriangle, FileDown, Calendar, ShoppingBag } from 'lucide-react'
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, endOfYear, subMonths, eachMonthOfInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { telechargerRapportPDF } from '../lib/rapport'
 import { InfosEntreprise } from '../lib/recu'
 import toast from 'react-hot-toast'
+import { useCommandes } from '../lib/commandesContext'
 
 type Periode = 'jour' | 'semaine' | 'mois' | 'annee' | 'personnalisee'
 
@@ -130,6 +131,7 @@ export default function DashboardPage() {
   const [entreprise, setEntreprise] = useState<InfosEntreprise>({ nom_entreprise: 'ChezMoi', telephone: '', adresse: '', devise: 'FCFA' })
   const [exportLoading, setExportLoading] = useState(false)
   const [donneesGraphique, setDonneesGraphique] = useState<{ mois: string; ca: number; ventes: number }[]>([])
+  const { nbEnAttente: nbCommandesEnAttente } = useCommandes()
 
   useEffect(() => {
     if (!eid) return
@@ -302,7 +304,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-2 gap-4 ${nbCommandesEnAttente > 0 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
         <div className="card p-4">
           <div className="flex items-start justify-between">
             <div>
@@ -343,6 +345,20 @@ export default function DashboardPage() {
           </div>
           <p className="text-xs text-gray-400 mt-2">{stats?.nb_articles || 0} articles actifs</p>
         </div>
+        {nbCommandesEnAttente > 0 && (
+          <div className="card p-4 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-amber-600 font-medium uppercase tracking-wide">Commandes en attente</p>
+                <p className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">{nbCommandesEnAttente}</p>
+              </div>
+              <div className="w-9 h-9 bg-amber-100 dark:bg-amber-900/40 rounded-lg flex items-center justify-center">
+                <ShoppingBag size={18} className="text-amber-600" />
+              </div>
+            </div>
+            <a href="/commandes" className="text-xs text-amber-600 hover:text-amber-700 mt-2 block">Voir les commandes →</a>
+          </div>
+        )}
       </div>
 
       {/* Graphique évolution 6 mois — SVG natif */}

@@ -155,118 +155,200 @@ function genererNoticePDF() {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const pageWidth = 210
   const margin = 15
+  const contentWidth = pageWidth - margin * 2
   let y = margin
 
   const checkPage = (needed: number) => {
-    if (y + needed > 282) { doc.addPage(); y = margin }
+    if (y + needed > 282) { doc.addPage(); y = margin + 5 }
   }
 
   const h1 = (txt: string) => {
     checkPage(14)
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(20)
+    doc.setFontSize(18)
     doc.setTextColor(27, 43, 75)
     doc.text(txt, margin, y)
-    y += 10
+    y += 8
+    doc.setDrawColor(27, 43, 75)
+    doc.setLineWidth(0.5)
+    doc.line(margin, y, pageWidth - margin, y)
+    y += 5
   }
 
   const h2 = (txt: string) => {
-    checkPage(12)
+    checkPage(14)
+    y += 3
+    doc.setFillColor(37, 99, 235)
+    doc.rect(margin, y - 4, contentWidth, 8, 'F')
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(13)
-    doc.setTextColor(37, 99, 235)
-    doc.text(txt, margin, y)
-    y += 7
+    doc.setFontSize(11)
+    doc.setTextColor(255, 255, 255)
+    doc.text(txt, margin + 3, y + 0.5)
+    doc.setTextColor(0, 0, 0)
+    y += 8
   }
 
-  const h3 = (txt: string) => {
+  const h3 = (num: number, txt: string) => {
     checkPage(8)
+    y += 2
+    doc.setFillColor(239, 246, 255)
+    doc.rect(margin + 3, y - 3.5, contentWidth - 3, 6.5, 'F')
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(10)
-    doc.setTextColor(30, 30, 30)
-    doc.text(`▸ ${txt}`, margin + 3, y)
-    y += 6
+    doc.setFontSize(9.5)
+    doc.setTextColor(30, 64, 175)
+    doc.text(`${num}.`, margin + 5, y)
+    doc.setTextColor(20, 20, 20)
+    doc.text(txt, margin + 11, y)
+    y += 5
   }
 
   const para = (txt: string) => {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
-    doc.setTextColor(70, 70, 70)
-    const lines = doc.splitTextToSize(txt, pageWidth - margin * 2 - 6)
-    checkPage(lines.length * 4.5 + 2)
-    doc.text(lines, margin + 6, y)
-    y += lines.length * 4.5 + 2
+    doc.setTextColor(60, 60, 60)
+    const lines = doc.splitTextToSize(txt, contentWidth - 10)
+    checkPage(lines.length * 4.8 + 2)
+    doc.text(lines, margin + 8, y)
+    y += lines.length * 4.8 + 1
   }
 
-  const separateur = () => {
-    checkPage(6)
-    doc.setDrawColor(220, 220, 220)
-    doc.setLineWidth(0.3)
-    doc.line(margin, y, pageWidth - margin, y)
-    y += 5
-  }
-
-  // Couverture
+  // ===== PAGE DE COUVERTURE =====
   doc.setFillColor(27, 43, 75)
-  doc.rect(0, 0, 210, 60, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(28)
-  doc.setTextColor(255, 255, 255)
-  doc.text('ChezMoi Pro', pageWidth / 2, 28, { align: 'center' })
-  doc.setFontSize(13)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(180, 200, 255)
-  doc.text('Notice d\'utilisation complète', pageWidth / 2, 38, { align: 'center' })
-  doc.text('Gestion commerciale simplifiée pour commerçants et PME', pageWidth / 2, 46, { align: 'center' })
-  doc.setFontSize(8)
-  doc.setTextColor(150, 170, 210)
-  doc.text(`Version 1.0 — ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 54, { align: 'center' })
-  y = 72
+  doc.rect(0, 0, 210, 297, 'F')
 
+  // Logo text
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(36)
+  doc.setTextColor(255, 255, 255)
+  doc.text('ChezMoi Pro', pageWidth / 2, 110, { align: 'center' })
+
+  doc.setFontSize(15)
+  doc.setFont('helvetica', 'normal')
+  doc.setTextColor(147, 197, 253)
+  doc.text('Notice d\'utilisation complete', pageWidth / 2, 126, { align: 'center' })
+
+  doc.setFontSize(11)
+  doc.setTextColor(191, 219, 254)
+  doc.text('Gestion commerciale simplifiee pour commercants et PME', pageWidth / 2, 142, { align: 'center' })
+
+  doc.setDrawColor(59, 130, 246)
+  doc.setLineWidth(0.5)
+  doc.line(margin + 20, 152, pageWidth - margin - 20, 152)
+
+  doc.setFontSize(9)
+  doc.setTextColor(148, 163, 184)
+  doc.text(`Version 1.0  -  ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 162, { align: 'center' })
+
+  // Table des matières
+  doc.setFontSize(12)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(255, 255, 255)
+  doc.text('Sommaire', pageWidth / 2, 185, { align: 'center' })
+
+  const sommaire = [
+    '1. Premiers pas',
+    '2. Tableau de bord',
+    '3. Caisse et Ventes',
+    '4. Articles',
+    '5. Gestion du stock',
+    '6. Clients',
+    '7. Fournisseurs',
+    '8. Utilisateurs et Acces',
+    '9. Mode hors ligne',
+    '10. Licence et Abonnement',
+  ]
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(186, 230, 253)
+  sommaire.forEach((item, i) => {
+    const col = i < 5 ? pageWidth / 2 - 45 : pageWidth / 2 + 5
+    const row = 195 + (i % 5) * 8
+    doc.text(item, col, row)
+  })
+
+  // Nouvelle page pour le contenu
+  doc.addPage()
+  y = margin + 5
   doc.setTextColor(0, 0, 0)
 
   // Introduction
   h1('Introduction')
-  para('ChezMoi est une application web progressive (PWA) de gestion commerciale conçue pour les commerçants, boutiques, magasins, grossistes et PME. Elle fonctionne sur PC, tablette et smartphone, et même sans connexion internet.')
-  para('Ce guide vous explique comment utiliser toutes les fonctionnalités de ChezMoi Pro.')
-  y += 3
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9.5)
+  doc.setTextColor(60, 60, 60)
+  const intro1 = doc.splitTextToSize('ChezMoi est une application web progressive (PWA) de gestion commerciale concue pour les commercants, boutiques, magasins, grossistes et PME. Elle fonctionne sur PC, tablette et smartphone, et meme sans connexion internet.', contentWidth)
+  doc.text(intro1, margin, y)
+  y += intro1.length * 5 + 3
+  const intro2 = doc.splitTextToSize('Ce guide vous explique pas a pas comment utiliser toutes les fonctionnalites de ChezMoi Pro.', contentWidth)
+  doc.text(intro2, margin, y)
+  y += intro2.length * 5 + 5
 
   // Sections
   for (const section of SECTIONS) {
-    separateur()
-    checkPage(16)
-    h2(`${section.titre}`)
-    for (const etape of section.etapes) {
-      h3(etape.titre)
-      para(etape.contenu)
-    }
-    y += 2
+    h2(section.titre)
+    section.etapes.forEach((etape, idx) => {
+      h3(idx + 1, etape.titre)
+      // Nettoie le texte : supprime les apostrophes typographiques et caractères spéciaux
+      const texteNettoye = etape.contenu
+        .replace(/['']/g, "'")
+        .replace(/[""]/g, '"')
+        .replace(/[→←↑↓]/g, '->')
+        .replace(/[☰]/g, '[menu]')
+        .replace(/[↻]/g, '[sync]')
+      para(texteNettoye)
+    })
+    y += 3
   }
 
   // Offres
-  separateur()
+  checkPage(60)
   h2('Nos offres de licence')
-  const offres = [
-    ['Essai gratuit', '0 FCFA', '15 jours', '3 utilisateurs', 'Toutes les fonctionnalités'],
-    ['Mensuelle', '4 500 FCFA', '1 mois', '3 utilisateurs', 'Support standard'],
-    ['Semestrielle', '25 500 FCFA', '6 mois', '5 utilisateurs', 'Support prioritaire'],
-    ['Annuelle', '50 000 FCFA', '1 an', '10 utilisateurs', 'Support prioritaire + accès anticipé'],
-    ['À vie', '150 000 FCFA', 'Illimitée', '15 utilisateurs', '12 mois de support inclus'],
-  ]
-  for (const [nom, prix, duree, users, avantage] of offres) {
-    h3(nom)
-    para(`Prix : ${prix} | Durée : ${duree} | ${users} | ${avantage}`)
-  }
+  y += 2
 
-  // Pied de page sur toutes les pages
+  const offres = [
+    { nom: 'Essai gratuit', prix: '0 FCFA', duree: '15 jours', users: '3 utilisateurs', couleur: [16, 185, 129] as [number,number,number] },
+    { nom: 'Mensuelle', prix: '4 500 FCFA', duree: '1 mois', users: '3 utilisateurs', couleur: [37, 99, 235] as [number,number,number] },
+    { nom: 'Semestrielle', prix: '25 500 FCFA', duree: '6 mois', users: '5 utilisateurs', couleur: [124, 58, 237] as [number,number,number] },
+    { nom: 'Annuelle', prix: '50 000 FCFA', duree: '1 an', users: '10 utilisateurs', couleur: [217, 119, 6] as [number,number,number] },
+    { nom: 'A vie', prix: '150 000 FCFA', duree: 'Illimitee', users: '15 utilisateurs', couleur: [220, 38, 38] as [number,number,number] },
+  ]
+
+  offres.forEach(offre => {
+    checkPage(18)
+    const [r, g, b] = offre.couleur
+    doc.setFillColor(r, g, b)
+    doc.rect(margin + 3, y, 3, 12, 'F')
+    doc.setFillColor(248, 250, 252)
+    doc.rect(margin + 6, y, contentWidth - 6, 12, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(10)
+    doc.setTextColor(r, g, b)
+    doc.text(offre.nom, margin + 10, y + 5)
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(20, 20, 20)
+    doc.text(offre.prix, margin + 10, y + 10)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8.5)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`Duree: ${offre.duree}  |  ${offre.users}`, pageWidth - margin - 5, y + 7.5, { align: 'right' })
+    y += 15
+  })
+
+  // Pied de page
   const nbPages = doc.getNumberOfPages()
   for (let i = 1; i <= nbPages; i++) {
     doc.setPage(i)
+    if (i === 1) continue // Pas de pied de page sur la couverture
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7)
+    doc.setFontSize(7.5)
     doc.setTextColor(150, 150, 150)
-    doc.text('ChezMoi Pro — Notice d\'utilisation', margin, 292)
-    doc.text(`Page ${i} / ${nbPages}`, pageWidth - margin, 292, { align: 'right' })
+    doc.setDrawColor(220, 220, 220)
+    doc.setLineWidth(0.3)
+    doc.line(margin, 287, pageWidth - margin, 287)
+    doc.text('ChezMoi Pro  -  Notice d\'utilisation', margin, 292)
+    doc.text(`Page ${i - 1} / ${nbPages - 1}`, pageWidth - margin, 292, { align: 'right' })
   }
 
   doc.save('Notice-ChezMoi-Pro.pdf')

@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import MotDePasseOubliePage from './pages/MotDePasseOubliePage'
 import InscriptionPage from './pages/InscriptionPage'
 import RenouvellementPage from './pages/RenouvellementPage'
+import AidePage from './pages/AidePage'
 import DashboardPage from './pages/DashboardPage'
 import ArticlesPage from './pages/ArticlesPage'
 import VentesPage from './pages/VentesPage'
@@ -122,6 +123,7 @@ export default function App() {
         <Route path="audit" element={<ProtectedRoute adminOnly><AuditPage /></ProtectedRoute>} />
         <Route path="permissions" element={<ProtectedRoute adminOnly><PermissionsPage /></ProtectedRoute>} />
         <Route path="renouvellement" element={<RenouvellementPage />} />
+        <Route path="aide" element={<AidePage />} />
         <Route path="parametres" element={<ProtectedRoute adminOnly><ParametresPage /></ProtectedRoute>} />
       </Route>
     </Routes>

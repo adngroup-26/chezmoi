@@ -1,6 +1,7 @@
 import { useLicence } from '../../lib/licence'
 import { AlertTriangle, Clock, XCircle, Ban } from 'lucide-react'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 const LABELS_TYPE: Record<string, string> = {
   essai: 'Essai gratuit',
@@ -89,8 +90,14 @@ export default function LicenceBanner() {
     <div className={`flex items-center gap-2 px-4 py-2 border-b text-xs ${config.bg} ${config.text}`}>
       <Icon size={14} className="flex-shrink-0" />
       <p className="flex-1">{config.message}</p>
+      <Link
+        to="/renouvellement"
+        className="flex-shrink-0 text-xs font-medium underline hover:opacity-80 transition-opacity"
+      >
+        Renouveler →
+      </Link>
       {config.fermable && (
-        <button onClick={() => setMasquee(true)} className="text-current opacity-60 hover:opacity-100 transition-opacity">
+        <button onClick={() => setMasquee(true)} className="text-current opacity-60 hover:opacity-100 transition-opacity ml-2">
           ✕
         </button>
       )}

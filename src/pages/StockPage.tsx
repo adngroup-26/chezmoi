@@ -1,4 +1,5 @@
 import { useEntreprise } from '../lib/entreprise'
+import { useDevise } from '../lib/devise'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Article, MouvementStock } from '../types'
@@ -9,12 +10,10 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { useLicence } from '../lib/licence'
 
-function formatMontant(n: number) {
-  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA'
-}
 
 export default function StockPage() {
   const { eid } = useEntreprise()
+  const { formatMontant } = useDevise()
   const { utilisateur } = useAuth()
   const { ecritureBloquee } = useLicence()
   const [articles, setArticles] = useState<Article[]>([])

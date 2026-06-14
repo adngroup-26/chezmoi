@@ -1,19 +1,122 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useEntreprise } from '../lib/entreprise'
 import { StatsDashboard } from '../types'
-import { TrendingUp, ShoppingCart, Users, Package, Wallet, BarChart3, AlertTriangle, FileDown, Calendar } from 'lucide-react'
+import { TrendingUp, ShoppingCart, Package, Wallet, BarChart3, AlertTriangle, FileDown, Calendar } from 'lucide-react'
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, endOfYear, subMonths, eachMonthOfInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { telechargerRapportPDF } from '../lib/rapport'
 import { InfosEntreprise } from '../lib/recu'
 import toast from 'react-hot-toast'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 type Periode = 'jour' | 'semaine' | 'mois' | 'annee' | 'personnalisee'
 
 function formatMontant(n: number) {
   return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA'
+}
+
+// Composant graphique SVG natif — aucune dépendance externe
+function GraphiqueCA({ donnees }: { donnees: { mois: string; ca: number; ventes: number }[] }) {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; d: typeof donnees[0] } | null>(null)
+
+  if (!donnees.length) return (
+    <div className="h-48 flex items-center justify-center text-gray-300 text-sm">Aucune donnée</div>
+  )
+
+  const W = 600, H = 160
+  const padL = 52, padR = 16, padT = 12, padB = 28
+  const innerW = W - padL - padR
+  const innerH = H - padT - padB
+
+  const maxCA = Math.max(...donnees.map(d => d.ca), 1)
+  const nTicks = 4
+
+  const xOf = (i: number) => padL + (i / (donnees.length - 1 || 1)) * innerW
+  const yOf = (v: number) => padT + innerH - (v / maxCA) * innerH
+
+  const points = donnees.map((d, i) => ({ x: xOf(i), y: yOf(d.ca), d }))
+
+  // Chemin courbe lisse (bezier)
+  const pathD = points.reduce((acc, p, i) => {
+    if (i === 0) return `M ${p.x},${p.y}`
+    const prev = points[i - 1]
+    const cpx = (prev.x + p.x) / 2
+    return acc + ` C ${cpx},${prev.y} ${cpx},${p.y} ${p.x},${p.y}`
+  }, '')
+
+  // Zone remplie
+  const areaD = pathD
+    + ` L ${points[points.length - 1].x},${padT + innerH}`
+    + ` L ${points[0].x},${padT + innerH} Z`
+
+  const fmtCA = (v: number) =>
+    v >= 1000000 ? `${(v / 1000000).toFixed(1)}M`
+    : v >= 1000 ? `${(v / 1000).toFixed(0)}k`
+    : `${v}`
+
+  return (
+    <div className="relative select-none" onMouseLeave={() => setTooltip(null)}>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full h-48">
+        <defs>
+          <linearGradient id="gCA" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2563EB" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#2563EB" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grilles horizontales */}
+        {Array.from({ length: nTicks + 1 }, (_, i) => {
+          const v = (maxCA / nTicks) * i
+          const y = yOf(v)
+          return (
+            <g key={i}>
+              <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="#E5E7EB" strokeWidth="0.8" strokeDasharray="4 3" />
+              <text x={padL - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#9CA3AF">{fmtCA(v)}</text>
+            </g>
+          )
+        })}
+
+        {/* Zone sous la courbe */}
+        <path d={areaD} fill="url(#gCA)" />
+
+        {/* Courbe */}
+        <path d={pathD} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Points + zones hover */}
+        {points.map((p, i) => (
+          <g key={i}
+            onMouseEnter={() => setTooltip({ x: p.x, y: p.y, d: p.d })}
+            onTouchStart={() => setTooltip({ x: p.x, y: p.y, d: p.d })}
+          >
+            {/* Zone cliquable invisible */}
+            <rect x={p.x - 20} y={padT} width={40} height={innerH} fill="transparent" />
+            {/* Point */}
+            <circle cx={p.x} cy={p.y} r="5" fill="#2563EB" stroke="white" strokeWidth="2.5" />
+            {/* Label mois */}
+            <text x={p.x} y={H - 6} textAnchor="middle" fontSize="10" fill="#9CA3AF">{p.d.mois}</text>
+          </g>
+        ))}
+      </svg>
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          className="absolute pointer-events-none z-10 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-xl"
+          style={{
+            left: `${(tooltip.x / W) * 100}%`,
+            top: `${(tooltip.y / H) * 100}%`,
+            transform: 'translate(-50%, -115%)',
+            minWidth: 130,
+          }}
+        >
+          <p className="font-semibold text-blue-300 mb-1">{tooltip.d.mois}</p>
+          <p className="text-gray-200">{new Intl.NumberFormat('fr-FR').format(tooltip.d.ca)} FCFA</p>
+          <p className="text-gray-400">{tooltip.d.ventes} vente{tooltip.d.ventes > 1 ? 's' : ''}</p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function DashboardPage() {
@@ -104,7 +207,7 @@ export default function DashboardPage() {
         const label = format(moisDate, 'MMM yy', { locale: fr })
         const debutM = startOfMonth(moisDate).toISOString()
         const finM = endOfMonth(moisDate).toISOString()
-        const ventesM = (ventesGraphique || []).filter(v => v.created_at >= debutM && v.created_at <= finM)
+        const ventesM = (ventesGraphique || []).filter((v: { total: number; created_at: string }) => v.created_at >= debutM && v.created_at <= finM)
         return {
           mois: label.charAt(0).toUpperCase() + label.slice(1),
           ca: Math.round(ventesM.reduce((s, v) => s + (v.total || 0), 0)),
@@ -243,50 +346,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Graphique évolution 6 mois */}
+      {/* Graphique évolution 6 mois — SVG natif */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-medium text-gray-900 dark:text-gray-100 text-sm">Évolution du chiffre d'affaires</h2>
             <p className="text-xs text-gray-400 mt-0.5">6 derniers mois</p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-gray-400">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 inline-block rounded"></span>CA</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 bg-blue-100 dark:bg-blue-900/40 inline-block rounded-sm border border-blue-300 dark:border-blue-700"></span>Ventes</span>
-          </div>
+          <span className="flex items-center gap-1.5 text-xs text-gray-400">
+            <span className="w-3 h-0.5 bg-blue-500 inline-block rounded"></span>CA mensuel
+          </span>
         </div>
-        <div className="h-52">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={donneesGraphique} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gradCA" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2563EB" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" className="dark:opacity-20" vertical={false} />
-              <XAxis dataKey="mois" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} width={70}
-                tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`}
-              />
-              <Tooltip
-                contentStyle={{ background: '#1F2937', border: 'none', borderRadius: 10, fontSize: 12, color: '#F9FAFB' }}
-                labelStyle={{ color: '#93C5FD', fontWeight: 600, marginBottom: 4 }}
-                formatter={(value: number, name: string) => [
-                  name === 'ca' ? new Intl.NumberFormat('fr-FR').format(value) + ' FCFA' : value + ' vente(s)',
-                  name === 'ca' ? 'CA' : 'Ventes'
-                ]}
-              />
-              <Area type="monotone" dataKey="ca" stroke="#2563EB" strokeWidth={2.5}
-                fill="url(#gradCA)" dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 6, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Mini stats sous le graphique */}
+        <GraphiqueCA donnees={donneesGraphique} />
         <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
           {donneesGraphique.slice(-3).map((d, i) => (
             <div key={i} className="text-center">

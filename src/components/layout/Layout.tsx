@@ -5,12 +5,23 @@ import { useSyncOffline } from '../../hooks/useSyncOffline'
 import { getNavPourRole } from '../../lib/modules'
 import LicenceBanner from './LicenceBanner'
 import { DeviseProvider } from '../../lib/devise'
+import { CommandesProvider, useCommandes } from '../../lib/commandesContext'
 import {
   ShieldCheck, RefreshCw, UploadCloud,
   LogOut, Wifi, WifiOff, Store, Menu, Sun, Moon, CreditCard
 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+
+function CommandesBadge() {
+  const { nbEnAttente } = useCommandes()
+  if (!nbEnAttente) return null
+  return (
+    <span className="ml-auto bg-amber-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 leading-none">
+      {nbEnAttente > 99 ? '99+' : nbEnAttente}
+    </span>
+  )
+}
 
 export default function Layout() {
   const { utilisateur, deconnexion, isAdmin } = useAuth()
@@ -58,7 +69,8 @@ export default function Layout() {
             }
           >
             <Icon size={17} />
-            {label}
+            <span className="flex-1">{label}</span>
+            {to === '/commandes' && <CommandesBadge />}
           </NavLink>
         ))}
         {isAdmin && (
@@ -167,7 +179,9 @@ export default function Layout() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <DeviseProvider entrepriseId={(utilisateur as unknown as { entreprise_id?: string })?.entreprise_id}>
+          <CommandesProvider entrepriseId={(utilisateur as unknown as { entreprise_id?: string })?.entreprise_id}>
             <Outlet />
+          </CommandesProvider>
           </DeviseProvider>
         </main>
       </div>

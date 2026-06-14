@@ -59,9 +59,13 @@ export default function SuperAdminEntreprisesPage() {
     )) return
     if (!confirm(`Confirmation finale : supprimer définitivement "${e.nom}" ?`)) return
 
-    const { error } = await supabase.from('entreprises').delete().eq('id', e.id)
-    if (error) { toast.error('Erreur : ' + error.message); return }
-    toast.success('Entreprise supprimée')
+    const { data, error } = await supabase.rpc('supprimer_entreprise', { p_entreprise_id: e.id })
+
+    if (error || !data?.succes) {
+      toast.error('Erreur : ' + (data?.erreur || error?.message || 'Erreur inconnue'))
+      return
+    }
+    toast.success(`Entreprise "${e.nom}" supprimée définitivement`)
     charger()
   }
 

@@ -7,6 +7,7 @@ import MotDePasseOubliePage from './pages/MotDePasseOubliePage'
 import InscriptionPage from './pages/InscriptionPage'
 import RenouvellementPage from './pages/RenouvellementPage'
 import AidePage from './pages/AidePage'
+import CommandesPage from './pages/CommandesPage'
 import DashboardPage from './pages/DashboardPage'
 import ArticlesPage from './pages/ArticlesPage'
 import VentesPage from './pages/VentesPage'
@@ -124,6 +125,7 @@ export default function App() {
         <Route path="permissions" element={<ProtectedRoute adminOnly><PermissionsPage /></ProtectedRoute>} />
         <Route path="renouvellement" element={<ProtectedRoute adminOnly><RenouvellementPage /></ProtectedRoute>} />
         <Route path="aide" element={<AidePage />} />
+        <Route path="commandes" element={<CommandesPage />} />
         <Route path="parametres" element={<ProtectedRoute adminOnly><ParametresPage /></ProtectedRoute>} />
       </Route>
     </Routes>

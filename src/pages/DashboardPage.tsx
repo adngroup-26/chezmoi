@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useEntreprise } from '../lib/entreprise'
+import { useDevise } from '../lib/devise'
 import { StatsDashboard } from '../types'
 import { TrendingUp, ShoppingCart, Package, Wallet, BarChart3, AlertTriangle, FileDown, Calendar } from 'lucide-react'
 import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, endOfYear, subMonths, eachMonthOfInterval } from 'date-fns'
@@ -11,9 +12,6 @@ import toast from 'react-hot-toast'
 
 type Periode = 'jour' | 'semaine' | 'mois' | 'annee' | 'personnalisee'
 
-function formatMontant(n: number) {
-  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA'
-}
 
 // Composant graphique SVG natif — aucune dépendance externe
 function GraphiqueCA({ donnees }: { donnees: { mois: string; ca: number; ventes: number }[] }) {
@@ -121,6 +119,7 @@ function GraphiqueCA({ donnees }: { donnees: { mois: string; ca: number; ventes:
 
 export default function DashboardPage() {
   const { eid } = useEntreprise()
+  const { formatMontant } = useDevise()
   const [stats, setStats] = useState<StatsDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [periode, setPeriode] = useState<Periode>('mois')

@@ -14,7 +14,7 @@ import { useLicence } from '../lib/licence'
 
 export default function CaissePage() {
   const { eid } = useEntreprise()
-  const { formatMontant } = useDevise()
+  const { formatMontant, devise } = useDevise()
   const { utilisateur } = useAuth()
   const isOnline = useOnlineStatus()
   const { ecritureBloquee } = useLicence()
@@ -515,7 +515,7 @@ export default function CaissePage() {
                     className="input-field text-xs py-1.5"
                     placeholder="0"
                   />
-                  <span className="text-xs text-gray-400">FCFA</span>
+                  <span className="text-xs text-gray-400">{devise}</span>
                 </div>
 
                 <div className="flex items-center justify-between py-2 border-t border-gray-100">

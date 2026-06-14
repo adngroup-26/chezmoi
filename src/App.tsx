@@ -122,7 +122,7 @@ export default function App() {
         <Route path="utilisateurs" element={<ProtectedRoute adminOnly><UtilisateursPage /></ProtectedRoute>} />
         <Route path="audit" element={<ProtectedRoute adminOnly><AuditPage /></ProtectedRoute>} />
         <Route path="permissions" element={<ProtectedRoute adminOnly><PermissionsPage /></ProtectedRoute>} />
-        <Route path="renouvellement" element={<RenouvellementPage />} />
+        <Route path="renouvellement" element={<ProtectedRoute adminOnly><RenouvellementPage /></ProtectedRoute>} />
         <Route path="aide" element={<AidePage />} />
         <Route path="parametres" element={<ProtectedRoute adminOnly><ParametresPage /></ProtectedRoute>} />
       </Route>

@@ -9,7 +9,7 @@ import toast from 'react-hot-toast'
 
 export default function ArticlesPage() {
   const { eid } = useEntreprise()
-  const { formatMontant } = useDevise()
+  const { formatMontant, devise } = useDevise()
   const [articles, setArticles] = useState<Article[]>([])
   const [categories, setCategories] = useState<Categorie[]>([])
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([])
@@ -160,16 +160,16 @@ export default function ArticlesPage() {
                 </select>
               </div>
               <div className="grid grid-cols-3 gap-3">
-                <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Prix achat (FCFA)</label><input type="number" min="0" value={form.prix_achat} onChange={e => setForm({...form, prix_achat: +e.target.value})} className="input-field" /></div>
-                <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Transport (FCFA)</label><input type="number" min="0" value={form.transport} onChange={e => setForm({...form, transport: +e.target.value})} className="input-field" /></div>
+                <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Prix d'achat global du lot ({devise})</label><input type="number" min="0" value={form.prix_achat} onChange={e => setForm({...form, prix_achat: +e.target.value})} className="input-field" /></div>
+                <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Transport ({devise})</label><input type="number" min="0" value={form.transport} onChange={e => setForm({...form, transport: +e.target.value})} className="input-field" /></div>
                 <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Quantité</label><input type="number" min="0" value={form.quantite} onChange={e => setForm({...form, quantite: +e.target.value})} className="input-field" /></div>
               </div>
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Prix de revient unitaire = {formatMontant(prixRevient(form.prix_achat, form.transport, form.quantite))}</p>
-                <p className="text-xs text-blue-500 mt-0.5">(Prix achat + Transport) ÷ Quantité</p>
+                <p className="text-xs text-blue-500 mt-0.5">(Prix d'achat global + Transport) ÷ Quantité du lot</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Prix de vente (FCFA) *</label><input type="number" min="0" value={form.prix_vente} onChange={e => setForm({...form, prix_vente: +e.target.value})} className="input-field" required /></div>
+                <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Prix de vente unitaire ({devise}) *</label><input type="number" min="0" value={form.prix_vente} onChange={e => setForm({...form, prix_vente: +e.target.value})} className="input-field" required /></div>
                 <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Stock minimum</label><input type="number" min="0" value={form.stock_minimum} onChange={e => setForm({...form, stock_minimum: +e.target.value})} className="input-field" /></div>
               </div>
               <div>

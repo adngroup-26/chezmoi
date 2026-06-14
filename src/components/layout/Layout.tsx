@@ -94,9 +94,11 @@ export default function Layout() {
           <LogOut size={14} />
           Déconnexion
         </button>
-        <NavLink to="/renouvellement" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2 text-emerald-400/80 hover:text-emerald-300 text-xs transition-colors mt-2 w-full">
-          <CreditCard size={14} /> Renouveler ma licence
-        </NavLink>
+        {isAdmin && (
+          <NavLink to="/renouvellement" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2 text-emerald-400/80 hover:text-emerald-300 text-xs transition-colors mt-2 w-full">
+            <CreditCard size={14} /> Renouveler ma licence
+          </NavLink>
+        )}
       </div>
     </div>
   )

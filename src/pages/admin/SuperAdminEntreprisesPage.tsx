@@ -46,8 +46,18 @@ export default function SuperAdminEntreprisesPage() {
   }
 
   const supprimer = async (e: Entreprise) => {
-    if (!confirm(`Supprimer définitivement "${e.nom}" et TOUTES ses données (articles, ventes, utilisateurs, etc.) ?\n\nCette action est IRRÉVERSIBLE.`)) return
-    if (!confirm('Confirmation finale : êtes-vous absolument certain ?')) return
+    if (!confirm(
+      `⚠️ SUPPRESSION DÉFINITIVE\n\n` +
+      `Vous allez supprimer l'entreprise "${e.nom}" et TOUTES ses données :\n\n` +
+      `• Tous les utilisateurs\n` +
+      `• Tous les articles et catégories\n` +
+      `• Tous les clients et fournisseurs\n` +
+      `• Tout l'historique des ventes\n` +
+      `• Tous les mouvements de stock\n` +
+      `• Toutes les licences et paiements\n\n` +
+      `Cette action est IRRÉVERSIBLE. Continuer ?`
+    )) return
+    if (!confirm(`Confirmation finale : supprimer définitivement "${e.nom}" ?`)) return
 
     const { error } = await supabase.from('entreprises').delete().eq('id', e.id)
     if (error) { toast.error('Erreur : ' + error.message); return }

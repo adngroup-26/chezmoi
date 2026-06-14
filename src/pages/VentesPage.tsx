@@ -1,4 +1,5 @@
 import { useEntreprise } from '../lib/entreprise'
+import { useDevise } from '../lib/devise'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Search, Eye, Printer, Download, FileText } from 'lucide-react'
@@ -6,9 +7,6 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { construireDonneesRecu, imprimerRecu, telechargerRecuPDF, FormatTicket, InfosEntreprise } from '../lib/recu'
 
-function formatMontant(n: number) {
-  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA'
-}
 
 interface VenteRow {
   id: string
@@ -29,6 +27,7 @@ interface VenteRow {
 
 export default function VentesPage() {
   const { eid } = useEntreprise()
+  const { formatMontant } = useDevise()
   const [ventes, setVentes] = useState<VenteRow[]>([])
   const [recherche, setRecherche] = useState('')
   const [loading, setLoading] = useState(true)

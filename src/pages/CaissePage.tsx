@@ -1,4 +1,5 @@
 import { useEntreprise } from '../lib/entreprise'
+import { useDevise } from '../lib/devise'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Article, Client, PanierItem } from '../types'
@@ -10,12 +11,10 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { cacheArticles, cacheClients, getArticlesCache, getClientsCache, sauvegarderVenteOffline, decrementerStockCache, sauvegarderClientOffline, ajouterClientAuCache } from '../lib/offline'
 import { useLicence } from '../lib/licence'
 
-function formatMontant(n: number) {
-  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA'
-}
 
 export default function CaissePage() {
   const { eid } = useEntreprise()
+  const { formatMontant } = useDevise()
   const { utilisateur } = useAuth()
   const isOnline = useOnlineStatus()
   const { ecritureBloquee } = useLicence()

@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 const CONFIG_PAIEMENT = {
   whatsapp: '2250711154074',      // Numéro WhatsApp avec indicatif (sans +)
   mobile_money: '0711154074',     // Numéro Mobile Money à créditer
-  operateur: 'Orange Money / Wave / MTN',
+  operateur: 'Orange Money / Wave',
   nom_beneficiaire: 'AnangoDuNet',
 }
 

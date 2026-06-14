@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, ShoppingCart, Package, Warehouse,
-  Users, Truck, BarChart3, Settings, UserCog, Tag, History, HelpCircle
+  Users, Truck, BarChart3, Settings, UserCog, Tag, History, HelpCircle, ShoppingBag
 } from 'lucide-react'
 
 // Définition centralisée de tous les modules de l'application.
@@ -17,6 +17,7 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   { key: 'dashboard', to: '/', label: 'Tableau de bord', icon: LayoutDashboard, exact: true, adminOnly: true },
   { key: 'caisse', to: '/caisse', label: 'Caisse', icon: ShoppingCart },
+  { key: 'commandes', to: '/commandes', label: 'Commandes', icon: ShoppingBag },
   { key: 'ventes', to: '/ventes', label: 'Historique ventes', icon: BarChart3 },
   { key: 'articles', to: '/articles', label: 'Articles', icon: Package },
   { key: 'categories', to: '/categories', label: 'Catégories', icon: Tag },

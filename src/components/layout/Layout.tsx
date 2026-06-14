@@ -4,6 +4,7 @@ import { useTheme } from '../../lib/theme'
 import { useSyncOffline } from '../../hooks/useSyncOffline'
 import { getNavPourRole } from '../../lib/modules'
 import LicenceBanner from './LicenceBanner'
+import { DeviseProvider } from '../../lib/devise'
 import {
   ShieldCheck, RefreshCw, UploadCloud,
   LogOut, Wifi, WifiOff, Store, Menu, Sun, Moon, CreditCard
@@ -165,7 +166,9 @@ export default function Layout() {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
-          <Outlet />
+          <DeviseProvider entrepriseId={(utilisateur as unknown as { entreprise_id?: string })?.entreprise_id}>
+            <Outlet />
+          </DeviseProvider>
         </main>
       </div>
     </div>

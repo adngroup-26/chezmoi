@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useEntreprise } from '../lib/entreprise'
+import { useDevise } from '../lib/devise'
 import { Article, Categorie, Fournisseur } from '../types'
 import { Plus, Search, Edit2, Trash2, Package, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-function formatMontant(n: number) {
-  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' FCFA'
-}
 
 export default function ArticlesPage() {
   const { eid } = useEntreprise()
+  const { formatMontant } = useDevise()
   const [articles, setArticles] = useState<Article[]>([])
   const [categories, setCategories] = useState<Categorie[]>([])
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([])

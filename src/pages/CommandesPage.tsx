@@ -80,8 +80,18 @@ export default function CommandesPage() {
       article: art,
       article_nom: art ? art.nom : '',
       prix_unitaire: art ? art.prix_vente : 0,
+      quantite: 1,
     }))
     const ns = [...searchArticle]; ns[i] = art?.nom || ''; setSearchArticle(ns)
+  }
+
+  const verifierStock = (i: number, qte: number) => {
+    const art = lignes[i].article
+    if (art && qte > art.quantite) {
+      toast(`⚠️ Stock insuffisant pour "${art.nom}" : ${art.quantite} unité(s) disponible(s). La commande sera enregistrée mais nécessitera un réapprovisionnement avant confirmation.`,
+        { duration: 5000, icon: '⚠️', style: { background: '#FFFBEB', color: '#92400E', border: '1px solid #FCD34D' } })
+    }
+    setLigne(i, 'quantite', qte)
   }
 
   const ajouterLigne = () => {
@@ -348,7 +358,7 @@ export default function CommandesPage() {
                     <div key={i} className="grid grid-cols-12 gap-2 items-end">
                       <div className="col-span-5">
                         {i === 0 && <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Article *</label>}
-                        <select
+                      <select
                           value={l.article?.id || ''}
                           onChange={e => choisirArticle(i, e.target.value)}
                           className="input-field text-sm"
@@ -362,8 +372,8 @@ export default function CommandesPage() {
                       <div className="col-span-2">
                         {i === 0 && <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Qté *</label>}
                         <input type="number" min="1" value={l.quantite}
-                          onChange={e => setLigne(i, 'quantite', +e.target.value)}
-                          className="input-field text-sm" />
+                          onChange={e => verifierStock(i, +e.target.value)}
+                          className={`input-field text-sm ${l.article && +l.quantite > l.article.quantite ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' : ''}`} />
                       </div>
                       <div className="col-span-3">
                         {i === 0 && <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Prix unit.</label>}
@@ -384,6 +394,18 @@ export default function CommandesPage() {
                 <button type="button" onClick={ajouterLigne} className="mt-2 text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 transition-colors">
                   <Plus size={13} /> Ajouter un article
                 </button>
+
+                {/* Alerte stock insuffisant */}
+                {lignes.some(l => l.article && l.quantite > l.article.quantite) && (
+                  <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1">⚠️ Stock insuffisant pour certains articles</p>
+                    {lignes.filter(l => l.article && l.quantite > l.article.quantite).map((l, i) => (
+                      <p key={i} className="text-xs text-amber-600 dark:text-amber-400">
+                        • {l.article_nom} : demandé {l.quantite}, disponible {l.article?.quantite} — réapprovisionner avant confirmation
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Notes & Remise */}
@@ -466,6 +488,25 @@ export default function CommandesPage() {
               {detailCmd.notes && (
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-xs text-gray-600 dark:text-gray-300">
                   <strong>Notes :</strong> {detailCmd.notes}
+                </div>
+              )}
+
+              {/* Alerte stock dans le détail */}
+              {detailCmd.statut === 'en_attente' && (detailCmd.details_commandes || []).some(d => {
+                const art = articles.find(a => a.id === d.article_id)
+                return art && d.quantite > art.quantite
+              }) && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+                  <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5">⚠️ Réapprovisionnement requis avant confirmation</p>
+                  {(detailCmd.details_commandes || [])
+                    .filter(d => { const art = articles.find(a => a.id === d.article_id); return art && d.quantite > art.quantite })
+                    .map((d, i) => {
+                      const art = articles.find(a => a.id === d.article_id)
+                      return <p key={i} className="text-xs text-amber-600 dark:text-amber-400">
+                        • {d.article_nom} : demandé {d.quantite}, en stock {art?.quantite ?? 0}
+                      </p>
+                    })
+                  }
                 </div>
               )}
 

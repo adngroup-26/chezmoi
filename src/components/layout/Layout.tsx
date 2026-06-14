@@ -5,8 +5,8 @@ import { useSyncOffline } from '../../hooks/useSyncOffline'
 import { getNavPourRole } from '../../lib/modules'
 import LicenceBanner from './LicenceBanner'
 import {
-  ShieldCheck,
-  LogOut, Wifi, WifiOff, Store, Menu, Sun, Moon, RefreshCw, UploadCloud
+  ShieldCheck, RefreshCw, UploadCloud,
+  LogOut, Wifi, WifiOff, Store, Menu, Sun, Moon, CreditCard
 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
@@ -94,6 +94,9 @@ export default function Layout() {
           <LogOut size={14} />
           Déconnexion
         </button>
+        <NavLink to="/renouvellement" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2 text-emerald-400/80 hover:text-emerald-300 text-xs transition-colors mt-2 w-full">
+          <CreditCard size={14} /> Renouveler ma licence
+        </NavLink>
       </div>
     </div>
   )

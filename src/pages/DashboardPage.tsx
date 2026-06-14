@@ -3,11 +3,12 @@ import { supabase } from '../lib/supabase'
 import { useEntreprise } from '../lib/entreprise'
 import { StatsDashboard } from '../types'
 import { TrendingUp, ShoppingCart, Users, Package, Wallet, BarChart3, AlertTriangle, FileDown, Calendar } from 'lucide-react'
-import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, endOfYear } from 'date-fns'
+import { format, startOfDay, endOfDay, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, endOfYear, subMonths, eachMonthOfInterval } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { telechargerRapportPDF } from '../lib/rapport'
 import { InfosEntreprise } from '../lib/recu'
 import toast from 'react-hot-toast'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 type Periode = 'jour' | 'semaine' | 'mois' | 'annee' | 'personnalisee'
 
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const [dateFinPerso, setDateFinPerso] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [entreprise, setEntreprise] = useState<InfosEntreprise>({ nom_entreprise: 'ChezMoi', telephone: '', adresse: '', devise: 'FCFA' })
   const [exportLoading, setExportLoading] = useState(false)
+  const [donneesGraphique, setDonneesGraphique] = useState<{ mois: string; ca: number; ventes: number }[]>([])
 
   useEffect(() => {
     if (!eid) return
@@ -88,6 +90,28 @@ export default function DashboardPage() {
         .from('ventes').select('*, clients(nom)').eq('entreprise_id', eid)
         .order('created_at', { ascending: false }).limit(5)
       setVentesRecentes(recentes || [])
+
+      // Graphique : CA et nombre de ventes des 6 derniers mois
+      const nowGraph = new Date()
+      const debut6Mois = startOfDay(subMonths(startOfMonth(nowGraph), 5))
+      const { data: ventesGraphique } = await supabase
+        .from('ventes').select('total, created_at')
+        .eq('statut', 'validee').eq('entreprise_id', eid)
+        .gte('created_at', debut6Mois.toISOString())
+
+      const mois6 = eachMonthOfInterval({ start: debut6Mois, end: nowGraph })
+      const donnees = mois6.map(moisDate => {
+        const label = format(moisDate, 'MMM yy', { locale: fr })
+        const debutM = startOfMonth(moisDate).toISOString()
+        const finM = endOfMonth(moisDate).toISOString()
+        const ventesM = (ventesGraphique || []).filter(v => v.created_at >= debutM && v.created_at <= finM)
+        return {
+          mois: label.charAt(0).toUpperCase() + label.slice(1),
+          ca: Math.round(ventesM.reduce((s, v) => s + (v.total || 0), 0)),
+          ventes: ventesM.length
+        }
+      })
+      setDonneesGraphique(donnees)
     } catch (e) { console.error(e) }
     setLoading(false)
   }
@@ -216,6 +240,63 @@ export default function DashboardPage() {
             <div className="w-9 h-9 bg-purple-50 rounded-lg flex items-center justify-center"><Package size={18} className="text-purple-600" /></div>
           </div>
           <p className="text-xs text-gray-400 mt-2">{stats?.nb_articles || 0} articles actifs</p>
+        </div>
+      </div>
+
+      {/* Graphique évolution 6 mois */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="font-medium text-gray-900 dark:text-gray-100 text-sm">Évolution du chiffre d'affaires</h2>
+            <p className="text-xs text-gray-400 mt-0.5">6 derniers mois</p>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-gray-400">
+            <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 inline-block rounded"></span>CA</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-3 bg-blue-100 dark:bg-blue-900/40 inline-block rounded-sm border border-blue-300 dark:border-blue-700"></span>Ventes</span>
+          </div>
+        </div>
+        <div className="h-52">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={donneesGraphique} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gradCA" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2563EB" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" className="dark:opacity-20" vertical={false} />
+              <XAxis dataKey="mois" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis
+                tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} width={70}
+                tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}k` : `${v}`}
+              />
+              <Tooltip
+                contentStyle={{ background: '#1F2937', border: 'none', borderRadius: 10, fontSize: 12, color: '#F9FAFB' }}
+                labelStyle={{ color: '#93C5FD', fontWeight: 600, marginBottom: 4 }}
+                formatter={(value: number, name: string) => [
+                  name === 'ca' ? new Intl.NumberFormat('fr-FR').format(value) + ' FCFA' : value + ' vente(s)',
+                  name === 'ca' ? 'CA' : 'Ventes'
+                ]}
+              />
+              <Area type="monotone" dataKey="ca" stroke="#2563EB" strokeWidth={2.5}
+                fill="url(#gradCA)" dot={{ r: 4, fill: '#2563EB', strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 6, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Mini stats sous le graphique */}
+        <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+          {donneesGraphique.slice(-3).map((d, i) => (
+            <div key={i} className="text-center">
+              <p className="text-xs text-gray-400">{d.mois}</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mt-0.5">
+                {d.ca >= 1000000 ? `${(d.ca/1000000).toFixed(1)}M` : d.ca >= 1000 ? `${(d.ca/1000).toFixed(0)}k` : d.ca} FCFA
+              </p>
+              <p className="text-xs text-gray-400">{d.ventes} vente{d.ventes > 1 ? 's' : ''}</p>
+            </div>
+          ))}
         </div>
       </div>
 

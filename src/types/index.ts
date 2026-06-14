@@ -135,3 +135,32 @@ export interface StatsDashboard {
   valeur_stock: number
   benefice_mois: number
 }
+
+export interface Commande {
+  id: string
+  entreprise_id: string
+  numero: string
+  client_id?: string
+  client_nom?: string
+  client_telephone?: string
+  adresse_livraison?: string
+  notes?: string
+  statut: 'en_attente' | 'confirmee' | 'annulee'
+  total: number
+  remise: number
+  vente_id?: string
+  created_at: string
+  updated_at: string
+  clients?: { nom: string; telephone?: string } | null
+  details_commandes?: DetailCommande[]
+}
+
+export interface DetailCommande {
+  id: string
+  commande_id: string
+  article_id?: string
+  article_nom: string
+  quantite: number
+  prix_unitaire: number
+  articles?: { nom: string; prix_vente: number; quantite: number }
+}

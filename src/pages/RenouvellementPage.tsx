@@ -11,7 +11,7 @@ const CONFIG_PAIEMENT = {
   whatsapp: '2250711154074',      // Numéro WhatsApp avec indicatif (sans +)
   mobile_money: '0711154074',     // Numéro Mobile Money à créditer
   operateur: 'Orange Money / Wave',
-  nom_beneficiaire: 'AnangoDuNet',
+  nom_beneficiaire: 'AnangoDuNet by ChezMoi',
 }
 
 interface Offre {
@@ -74,19 +74,25 @@ export default function RenouvellementPage() {
   const [nomEntreprise, setNomEntreprise] = useState('')
 
   useEffect(() => {
-    // Génère une référence unique pour ce paiement
-    const ref = `CM-${Date.now().toString().slice(-8)}`
-    setReference(ref)
-
-    // Charge le nom de l'entreprise
     if (eid) {
       supabase.from('entreprises').select('nom').eq('id', eid).single()
         .then(({ data }) => { if (data) setNomEntreprise(data.nom) })
     }
   }, [eid])
 
+  // Génère la référence quand l'offre est sélectionnée :
+  // format CM-[3 lettres entreprise]-[code offre]-[timestamp court]
+  // Ex: CM-ANG-MEN-36417 → traçable et unique par entreprise et par offre
+  const genererReference = (offre: Offre) => {
+    const prefixEntreprise = nomEntreprise.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 3) || 'ENT'
+    const codeOffre = { mensuelle: 'MEN', semestrielle: 'SEM', annuelle: 'ANN', a_vie: 'AVE' }[offre.id] || offre.id.toUpperCase().slice(0, 3)
+    const suffixe = Date.now().toString().slice(-5)
+    return `CM-${prefixEntreprise}-${codeOffre}-${suffixe}`
+  }
+
   const choisirOffre = (offre: Offre) => {
     setOffreSelectionnee(offre)
+    setReference(genererReference(offre))
     setEtape('paiement')
   }
 

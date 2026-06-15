@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger'
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useEntreprise } from '../lib/entreprise'
@@ -216,7 +217,7 @@ export default function DashboardPage() {
         }
       })
       setDonneesGraphique(donnees)
-    } catch (e) { console.error(e) }
+    } catch (e) { logger.error(e) }
     setLoading(false)
   }
 
@@ -260,7 +261,7 @@ export default function DashboardPage() {
         entreprise
       })
       toast.success('Rapport PDF généré !')
-    } catch (e) { console.error(e); toast.error('Erreur lors de la génération') }
+    } catch (e) { logger.error(e); toast.error('Erreur lors de la génération') }
     setExportLoading(false)
   }
 

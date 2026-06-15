@@ -3,7 +3,7 @@ import {
   HelpCircle, ChevronDown, ChevronRight, Download,
   ShoppingCart, Package, Warehouse, Users, Truck,
   LayoutDashboard, BarChart3, Settings, Tag, Shield,
-  Wifi, FileText, RefreshCw, Lock
+  Wifi, FileText, Lock, ShoppingBag
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 
@@ -52,6 +52,42 @@ const SECTIONS: Section[] = [
       { titre: 'Appliquer une remise', contenu: 'Entrez le montant de la remise dans le champ « Remise » (en FCFA). Le total est recalculé automatiquement.' },
       { titre: 'Valider et imprimer le reçu', contenu: 'Cliquez sur « Valider la vente ». Le stock se met à jour automatiquement. Choisissez ensuite le format du reçu (Ticket 58mm, 80mm ou PDF A4) puis cliquez sur « Imprimer » ou « Télécharger PDF ».' },
       { titre: 'Réimprimer un ancien reçu', contenu: 'Allez dans « Historique ventes », cliquez sur l\'icône œil d\'une vente, choisissez le format et cliquez sur « Réimprimer ».' },
+    ]
+  },
+  {
+    id: 'commandes',
+    icon: ShoppingBag,
+    titre: 'Commandes',
+    couleur: 'amber',
+    etapes: [
+      {
+        titre: 'Qu\'est-ce qu\'une commande ?',
+        contenu: 'Une commande est une pré-vente enregistrée avant d\'être confirmée. Elle vous permet de noter les demandes de clients (avec leurs coordonnées de livraison) sans impacter le stock immédiatement. Une fois confirmée, elle se transforme automatiquement en vente.'
+      },
+      {
+        titre: 'Créer une commande',
+        contenu: 'Allez dans le menu « Commandes » puis cliquez sur « Nouvelle commande ». Renseignez le client (depuis la liste ou manuellement avec nom, téléphone et adresse de livraison), ajoutez les articles commandés avec leurs quantités et prix, puis cliquez sur « Enregistrer la commande ». La commande est créée avec le statut « En attente ».'
+      },
+      {
+        titre: 'Alerte de stock insuffisant',
+        contenu: 'Si la quantité demandée dépasse le stock disponible, un avertissement orange s\'affiche automatiquement. Vous pouvez tout de même enregistrer la commande, mais un message vous rappelle de réapprovisionner les articles concernés avant de confirmer.'
+      },
+      {
+        titre: 'Badge commandes en attente',
+        contenu: 'Un badge orange s\'affiche à côté du menu « Commandes » dès qu\'il y a des commandes en attente. Ce compteur se met à jour en temps réel. Sur le tableau de bord, une carte amber affiche également le nombre de commandes en attente avec un lien direct.'
+      },
+      {
+        titre: 'Confirmer une commande → Vente',
+        contenu: 'Ouvrez la commande en cliquant sur l\'icône œil, puis cliquez sur « Confirmer → Vente ». La commande passe au statut « Confirmée », une vente est automatiquement créée dans l\'historique, et le stock est déduit pour chaque article. Si des articles ont un stock insuffisant, un avertissement s\'affiche avant confirmation.'
+      },
+      {
+        titre: 'Annuler une commande',
+        contenu: 'Ouvrez la commande et cliquez sur « Annuler ». La commande passe au statut « Annulée » et aucune modification de stock n\'est effectuée. Une commande annulée ne peut pas être réactivée.'
+      },
+      {
+        titre: 'Filtrer et rechercher les commandes',
+        contenu: 'Utilisez la barre de recherche pour trouver une commande par numéro (CMD-...) ou par nom de client. Les boutons de filtre permettent d\'afficher uniquement les commandes « En attente », « Confirmées » ou « Annulées ».'
+      },
     ]
   },
   {
@@ -249,21 +285,22 @@ function genererNoticePDF() {
     '1. Premiers pas',
     '2. Tableau de bord',
     '3. Caisse et Ventes',
-    '4. Articles',
-    '5. Gestion du stock',
-    '6. Clients',
-    '7. Fournisseurs',
-    '8. Utilisateurs et Acces',
-    '9. Mode hors ligne',
-    '10. Licence et Abonnement',
+    '4. Commandes',
+    '5. Articles',
+    '6. Gestion du stock',
+    '7. Clients',
+    '8. Fournisseurs',
+    '9. Utilisateurs et Acces',
+    '10. Mode hors ligne',
+    '11. Licence et Abonnement',
   ]
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(186, 230, 253)
   sommaire.forEach((item, i) => {
-    const col = i < 5 ? pageWidth / 2 - 45 : pageWidth / 2 + 5
-    const row = 195 + (i % 5) * 8
+    const col = i < 6 ? pageWidth / 2 - 50 : pageWidth / 2 + 5
+    const row = 193 + (i % 6) * 8
     doc.text(item, col, row)
   })
 
@@ -284,15 +321,16 @@ function genererNoticePDF() {
   doc.text(intro2, margin, y)
   y += intro2.length * 5 + 5
 
-  // Sections
+  // Sections — inclut automatiquement le module Commandes
   for (const section of SECTIONS) {
+    checkPage(16)
     h2(section.titre)
     section.etapes.forEach((etape, idx) => {
       h3(idx + 1, etape.titre)
-      // Nettoie le texte : supprime les apostrophes typographiques et caractères spéciaux
       const texteNettoye = etape.contenu
         .replace(/['']/g, "'")
         .replace(/[""]/g, '"')
+        .replace(/[«»]/g, '"')
         .replace(/[→←↑↓]/g, '->')
         .replace(/[☰]/g, '[menu]')
         .replace(/[↻]/g, '[sync]')
@@ -456,7 +494,7 @@ export default function AidePage() {
         <p className="text-sm font-medium text-gray-700 dark:text-gray-200">Besoin d'aide supplémentaire ?</p>
         <p className="text-xs text-gray-400">Contactez notre support via WhatsApp pour toute question.</p>
         <button
-          onClick={() => window.open('https://wa.me/2250711154074?text=Bonjour, j\'ai besoin d\'aide avec ChezMoi Pro.', '_blank')}
+          onClick={() => window.open('https://wa.me/2250700000000?text=Bonjour, j\'ai besoin d\'aide avec ChezMoi Pro.', '_blank')}
           className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           Contacter le support WhatsApp

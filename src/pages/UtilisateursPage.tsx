@@ -73,18 +73,49 @@ export default function UtilisateursPage() {
     if (!editItem && !form.mot_de_passe) { toast.error('Mot de passe requis pour un nouvel utilisateur'); return }
 
     const data: Record<string, unknown> = { nom: form.nom, telephone: form.telephone, role_id: form.role_id }
-    if (form.mot_de_passe) data.mot_de_passe_hash = btoa(form.mot_de_passe) // Simple encoding, à remplacer par bcrypt côté serveur
     if (form.question_secrete) data.question_secrete = form.question_secrete
-    if (form.reponse_secrete) data.reponse_secrete_hash = btoa(form.reponse_secrete.toLowerCase().trim())
 
     let error
     if (editItem) {
-      ({ error } = await supabase.from('utilisateurs').update(data).eq('id', editItem.id).eq('entreprise_id', eid))
+      // Mise à jour des infos de base
+      ;({ error } = await supabase.from('utilisateurs').update(data).eq('id', editItem.id).eq('entreprise_id', eid))
+      // Changement mot de passe via RPC bcrypt (si renseigné)
+      if (!error && form.mot_de_passe) {
+        const { error: pwErr } = await supabase.rpc('changer_mot_de_passe', {
+          p_utilisateur_id: editItem.id,
+          p_nouveau_mot_de_passe: form.mot_de_passe
+        })
+        if (pwErr) { toast.error('Erreur mot de passe : ' + pwErr.message); return }
+      }
+      // Question secrète via RPC bcrypt
+      if (!error && form.reponse_secrete && form.question_secrete) {
+        await supabase.rpc('definir_question_secrete', {
+          p_telephone: form.telephone,
+          p_question: form.question_secrete,
+          p_reponse: form.reponse_secrete
+        })
+      }
     } else {
-      ({ error } = await supabase.from('utilisateurs').insert({ ...data, entreprise_id: eid }))
+      // Création : mot de passe hashé via RPC bcrypt
+      const { error: rpcErr } = await supabase.rpc('creer_utilisateur', {
+        p_nom: form.nom,
+        p_telephone: form.telephone,
+        p_role_id: form.role_id,
+        p_mot_de_passe: form.mot_de_passe,
+        p_entreprise_id: eid
+      })
+      error = rpcErr
+      // Question secrète après création
+      if (!error && form.reponse_secrete && form.question_secrete) {
+        await supabase.rpc('definir_question_secrete', {
+          p_telephone: form.telephone,
+          p_question: form.question_secrete,
+          p_reponse: form.reponse_secrete
+        })
+      }
     }
 
-    if (error) { toast.error('Erreur : ' + error.message); return }
+    if (error) { toast.error('Erreur : ' + (error as { message: string }).message); return }
     toast.success(editItem ? 'Utilisateur modifié !' : 'Utilisateur créé !')
     setShowModal(false)
     charger()

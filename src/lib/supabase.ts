@@ -19,12 +19,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
  */
 export async function setSessionEntrepriseId(entrepriseId: string) {
   if (!entrepriseId) return
-  await supabase.rpc('set_config', {
-    setting: 'app.entreprise_id',
-    value: entrepriseId,
-    is_local: false
-  }).catch(() => {
-    // Fallback si set_config RPC non disponible :
-    // les policies RLS utilisent la clé de session directement
-  })
+  try {
+    await supabase.rpc('set_config', {
+      setting: 'app.entreprise_id',
+      value: entrepriseId,
+      is_local: false
+    })
+  } catch {
+    // Ignoré si set_config RPC non disponible
+  }
 }

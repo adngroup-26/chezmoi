@@ -47,6 +47,7 @@ export interface ClientOffline {
   email?: string
   adresse?: string
   notes?: string
+  entreprise_id?: string
   created_at: string
   synced: 'true' | 'false'
 }

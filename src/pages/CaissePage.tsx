@@ -117,7 +117,12 @@ export default function CaissePage() {
 
   const retirerDuPanier = (id: string) => setPanier(prev => prev.filter(p => p.article.id !== id))
 
-  const sousTotal = panier.reduce((s, p) => s + (p.article.prix_vente * p.quantite - p.remise), 0)
+  // Sous-total : remise par ligne cappée au montant de la ligne
+  const sousTotal = panier.reduce((s, p) => {
+    const montantLigne = p.article.prix_vente * p.quantite
+    const remiseLigne = Math.min(p.remise, montantLigne) // ne peut pas dépasser le prix
+    return s + (montantLigne - remiseLigne)
+  }, 0)
   const total = Math.max(0, sousTotal - remiseGlobale)
 
   const creerNouveauClient = async (e: React.FormEvent) => {

@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger'
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { supabase } from './supabase'
 import { useAuth } from './auth'
@@ -50,7 +51,7 @@ export function LicenceProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(CACHE_KEY, JSON.stringify(infos))
       localStorage.setItem(CACHE_DATE_KEY, new Date().toISOString())
     } catch (e) {
-      console.error('[LICENCE] Erreur de vérification, utilisation du cache:', e)
+      logger.error('[LICENCE] Erreur de vérification, utilisation du cache:', e)
       const cache = localStorage.getItem(CACHE_KEY)
       if (cache) {
         try { setLicence(JSON.parse(cache)) } catch { /* ignore */ }

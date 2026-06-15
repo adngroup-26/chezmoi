@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger'
 import { useEntreprise } from '../lib/entreprise'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
@@ -46,7 +47,7 @@ export default function UtilisateursPage() {
       supabase.from('roles').select('*')
     ])
 
-    if (u.error) console.error('[UTILISATEURS] Erreur chargement:', u.error)
+    if (u.error) logger.error('[UTILISATEURS] Erreur chargement:', u.error)
 
     const rolesData = r.data || []
     const utilisateursAvecRole = (u.data || []).map(util => ({

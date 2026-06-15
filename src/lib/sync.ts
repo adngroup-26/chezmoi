@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger'
 import { supabase } from './supabase'
 import {
   getVentesNonSynchronisees,
@@ -27,13 +28,14 @@ async function synchroniserClient(client: ClientOffline): Promise<boolean> {
         telephone: client.telephone || null,
         email: client.email || null,
         adresse: client.adresse || null,
-        notes: client.notes || null
+        notes: client.notes || null,
+        entreprise_id: client.entreprise_id || null
       })
       .select()
       .single()
 
     if (error || !nvClient) {
-      console.error('[SYNC] Erreur création client:', error)
+      logger.error('[SYNC] Erreur création client:', error)
       return false
     }
 
@@ -41,7 +43,7 @@ async function synchroniserClient(client: ClientOffline): Promise<boolean> {
     await remplacerClientIdDansVentes(client.id, nvClient.id)
     return true
   } catch (e) {
-    console.error('[SYNC] Exception lors de la synchronisation du client:', e)
+    logger.error('[SYNC] Exception lors de la synchronisation du client:', e)
     return false
   }
 }
@@ -70,7 +72,7 @@ async function synchroniserVente(vente: VenteOffline): Promise<boolean> {
     // Si la vente référence un client créé hors ligne pas encore synchronisé,
     // on ne peut pas l'envoyer maintenant (le client_id temporaire n'existe pas côté serveur).
     if (vente.client_id && vente.client_id.startsWith('offline_')) {
-      console.log('[SYNC] Vente en attente du client associé, report de la synchronisation:', vente.numero)
+      logger.log('[SYNC] Vente en attente du client associé, report de la synchronisation:', vente.numero)
       return false
     }
 
@@ -90,6 +92,7 @@ async function synchroniserVente(vente: VenteOffline): Promise<boolean> {
           numero: vente.numero,
           client_id: vente.client_id,
           utilisateur_id: vente.utilisateur_id,
+          entreprise_id: vente.entreprise_id,
           total: vente.total,
           remise: vente.remise,
           statut: 'validee',
@@ -99,7 +102,7 @@ async function synchroniserVente(vente: VenteOffline): Promise<boolean> {
         .single()
 
       if (venteError || !nvVente) {
-        console.error('[SYNC] Erreur création vente:', venteError)
+        logger.error('[SYNC] Erreur création vente:', venteError)
         return false
       }
       venteId = nvVente.id
@@ -107,6 +110,7 @@ async function synchroniserVente(vente: VenteOffline): Promise<boolean> {
       const details = vente.items.map(item => ({
         vente_id: venteId,
         article_id: item.article_id,
+        entreprise_id: vente.entreprise_id,
         quantite: item.quantite,
         prix_unitaire: item.prix_unitaire,
         remise: 0
@@ -116,10 +120,11 @@ async function synchroniserVente(vente: VenteOffline): Promise<boolean> {
       const mouvements = vente.items.map(item => ({
         article_id: item.article_id,
         utilisateur_id: vente.utilisateur_id,
+        entreprise_id: vente.entreprise_id,
         type: 'vente',
         quantite: item.quantite,
         vente_id: venteId,
-        commentaire: `Vente ${vente.numero} (synchronisée hors ligne)`
+        commentaire: `Vente ${vente.numero} (synchronisee hors ligne)`
       }))
       await supabase.from('mouvements_stock').insert(mouvements)
 
@@ -141,7 +146,7 @@ async function synchroniserVente(vente: VenteOffline): Promise<boolean> {
     await marquerVenteSynchronisee(vente.id)
     return true
   } catch (e) {
-    console.error('[SYNC] Exception lors de la synchronisation:', e)
+    logger.error('[SYNC] Exception lors de la synchronisation:', e)
     return false
   }
 }

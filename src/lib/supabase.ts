@@ -10,22 +10,3 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: { persistSession: true, autoRefreshToken: true }
 })
-
-/**
- * Positionne l'entreprise_id dans la session PostgreSQL
- * avant chaque requête métier, pour que les policies RLS
- * puissent filtrer correctement par tenant.
- * À appeler une seule fois après connexion.
- */
-export async function setSessionEntrepriseId(entrepriseId: string) {
-  if (!entrepriseId) return
-  try {
-    await supabase.rpc('set_config', {
-      setting: 'app.entreprise_id',
-      value: entrepriseId,
-      is_local: false
-    })
-  } catch {
-    // Ignoré si set_config RPC non disponible
-  }
-}

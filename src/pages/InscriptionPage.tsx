@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -54,7 +55,7 @@ export default function InscriptionPage() {
       setNumeroLicence(result.numero_licence || '')
       setEtape('succes')
     } catch (err) {
-      console.error(err)
+      logger.error(err)
       toast.error('Erreur de connexion. Vérifiez votre internet et réessayez.')
     }
 

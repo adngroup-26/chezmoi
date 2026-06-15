@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger'
 import { useEntreprise } from '../lib/entreprise'
 import { useDevise } from '../lib/devise'
 import { useEffect, useState } from 'react'
@@ -76,7 +77,7 @@ export default function CaissePage() {
     } catch (e) {
       // Connexion réellement indisponible malgré navigator.onLine === true
       // → on charge depuis le cache local
-      console.error('[CAISSE] Échec chargement en ligne, utilisation du cache:', e)
+      logger.error('[CAISSE] Échec chargement en ligne, utilisation du cache:', e)
       const [a, c] = await Promise.all([getArticlesCache(), getClientsCache()])
       setArticles(a as unknown as Article[])
       setClients(c as unknown as Client[])
@@ -163,7 +164,7 @@ export default function CaissePage() {
       } catch (e) {
         // Connexion réellement indisponible malgré navigator.onLine === true
         // → on bascule sur la création hors ligne
-        console.error('[CLIENT] Échec création en ligne, bascule hors ligne:', e)
+        logger.error('[CLIENT] Échec création en ligne, bascule hors ligne:', e)
         const clientOffline = {
           id: `offline_${crypto.randomUUID()}`,
           nom: nouveauClient.nom.trim(),
@@ -231,7 +232,7 @@ export default function CaissePage() {
         setRemiseGlobale(0)
         toast.success(`Vente ${numero} enregistrée hors ligne — synchronisation automatique au retour du réseau.`)
       } catch (e) {
-        console.error(e)
+        logger.error(e)
         toast.error("Erreur lors de l'enregistrement hors ligne")
       }
       setLoading(false)
@@ -293,7 +294,7 @@ export default function CaissePage() {
       toast.success(`Vente ${numero} enregistrée !`)
     } catch (e) {
       // Échec réseau alors qu'on pensait être en ligne → bascule en sauvegarde hors ligne
-      console.error(e)
+      logger.error(e)
       try {
         await sauvegarderVenteOffline({
           id: crypto.randomUUID(),

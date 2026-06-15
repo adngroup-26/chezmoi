@@ -1,3 +1,4 @@
+import { logger } from '../lib/logger'
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { Utilisateur, Role } from '../types'
@@ -25,7 +26,7 @@ async function normaliserUtilisateur(data: Record<string, unknown>): Promise<Uti
   // Fallback : si la jointure n'a rien renvoyé mais qu'on a un role_id,
   // on va chercher le rôle directement dans la table roles.
   if (!roles && data.role_id) {
-    console.log('[AUTH] Jointure roles(*) vide — chargement manuel via role_id:', data.role_id)
+    logger.log('[AUTH] Jointure roles(*) vide — chargement manuel via role_id:', data.role_id)
     const { data: roleData, error: roleError } = await supabase
       .from('roles')
       .select('*')
@@ -33,9 +34,9 @@ async function normaliserUtilisateur(data: Record<string, unknown>): Promise<Uti
       .single()
 
     if (roleError) {
-      console.error('[AUTH] Erreur lors du chargement manuel du rôle:', roleError)
+      logger.error('[AUTH] Erreur lors du chargement manuel du rôle:', roleError)
     } else {
-      console.log('[AUTH] Rôle chargé manuellement:', roleData)
+      logger.log('[AUTH] Rôle chargé manuellement:', roleData)
       roles = roleData
     }
   }
@@ -52,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const u = JSON.parse(saved)
-        console.log('[AUTH] Utilisateur trouvé dans le localStorage:', u)
+        logger.log('[AUTH] Utilisateur trouvé dans le localStorage:', u)
 
         supabase
           .from('utilisateurs')
@@ -62,24 +63,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .single()
           .then(async ({ data, error }) => {
             if (error) {
-              console.error('[AUTH] Erreur lors du rechargement utilisateur:', error)
+              logger.error('[AUTH] Erreur lors du rechargement utilisateur:', error)
             }
             if (data) {
-              console.log('[AUTH] Données brutes reçues de Supabase:', data)
+              logger.log('[AUTH] Données brutes reçues de Supabase:', data)
               const userNormalise = await normaliserUtilisateur(data)
-              console.log('[AUTH] Utilisateur normalisé:', userNormalise)
-              console.log('[AUTH] isAdmin calculé:', userNormalise.roles?.nom === 'admin')
+              logger.log('[AUTH] Utilisateur normalisé:', userNormalise)
+              logger.log('[AUTH] isAdmin calculé:', userNormalise.roles?.nom === 'admin')
 
-              localStorage.setItem('chezmoi_user', JSON.stringify(userNormalise))
-              setUtilisateur(userNormalise)
+      // Stocke uniquement les champs nécessaires — pas les données sensibles
+      const userPourStorage = {
+        id: userNormalise.id,
+        nom: userNormalise.nom,
+        telephone: userNormalise.telephone,
+        role_id: userNormalise.role_id,
+        actif: userNormalise.actif,
+        entreprise_id: (userNormalise as unknown as { entreprise_id?: string }).entreprise_id,
+        roles: userNormalise.roles,
+        created_at: userNormalise.created_at,
+      }
+      localStorage.setItem('chezmoi_user', JSON.stringify(userPourStorage))
+      setUtilisateur(userNormalise)
             } else {
-              console.warn('[AUTH] Aucune donnée utilisateur retournée — déconnexion forcée')
+              logger.warn('[AUTH] Aucune donnée utilisateur retournée — déconnexion forcée')
               localStorage.removeItem('chezmoi_user')
             }
             setLoading(false)
           })
       } catch (e) {
-        console.error('[AUTH] Erreur de parsing localStorage:', e)
+        logger.error('[AUTH] Erreur de parsing localStorage:', e)
         setLoading(false)
       }
     } else {
@@ -89,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const connexion = async (telephone: string, motDePasse: string) => {
     try {
-      console.log('[AUTH] Tentative de connexion pour le téléphone:', telephone)
+      logger.log('[AUTH] Tentative de connexion pour le téléphone:', telephone)
 
       const { data: authData, error: authError } = await supabase
         .rpc('verifier_mot_de_passe', { p_telephone: telephone, p_mot_de_passe: motDePasse })
@@ -104,28 +116,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single()
 
       if (error || !data) {
-        console.error('[AUTH] Erreur chargement utilisateur après connexion:', error)
+        logger.error('[AUTH] Erreur chargement utilisateur après connexion:', error)
         return { error: 'Utilisateur introuvable' }
       }
 
-      console.log('[AUTH] Données brutes après connexion:', data)
-      console.log('[AUTH] data.roles (brut):', data.roles)
+      logger.log('[AUTH] Données brutes après connexion:', data)
+      logger.log('[AUTH] data.roles (brut):', data.roles)
 
       const userNormalise = await normaliserUtilisateur(data)
-      console.log('[AUTH] Rôle final après normalisation:', userNormalise.roles)
-      console.log('[AUTH] isAdmin sera:', userNormalise.roles?.nom === 'admin')
+      logger.log('[AUTH] Rôle final après normalisation:', userNormalise.roles)
+      logger.log('[AUTH] isAdmin sera:', userNormalise.roles?.nom === 'admin')
 
-      localStorage.setItem('chezmoi_user', JSON.stringify(userNormalise))
+      // Stocke uniquement les champs nécessaires — pas question_secrete ni données sensibles
+      const userPourStorage = {
+        id: userNormalise.id,
+        nom: userNormalise.nom,
+        telephone: userNormalise.telephone,
+        role_id: userNormalise.role_id,
+        actif: userNormalise.actif,
+        entreprise_id: (userNormalise as unknown as { entreprise_id?: string }).entreprise_id,
+        roles: userNormalise.roles,
+        created_at: userNormalise.created_at,
+      }
+      localStorage.setItem('chezmoi_user', JSON.stringify(userPourStorage))
       setUtilisateur(userNormalise)
 
       // Enregistre l'heure de connexion (pour le statut en ligne/hors ligne)
       supabase.rpc('enregistrer_connexion', { p_telephone: telephone }).then(({ error }) => {
-        if (error) console.error('[AUTH] Erreur enregistrement connexion:', error)
+        if (error) logger.error('[AUTH] Erreur enregistrement connexion:', error)
       })
 
       return {}
     } catch (e) {
-      console.error('[AUTH] Exception lors de la connexion:', e)
+      logger.error('[AUTH] Exception lors de la connexion:', e)
       return { error: 'Erreur de connexion. Vérifiez votre internet.' }
     }
   }

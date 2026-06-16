@@ -50,19 +50,26 @@ export default function MotDePasseOubliePage() {
 
     setLoading(true)
     try {
-      const { data, error } = await supabase.rpc('reinitialiser_mot_de_passe', {
+      const { data: resetResult, error } = await supabase.rpc('reinitialiser_mot_de_passe', {
         p_telephone: telephone,
         p_reponse: reponse,
         p_nouveau_mot_de_passe: nouveauMdp
       })
-      if (error || !data) {
-        toast.error('Réponse incorrecte')
+      const res = resetResult as { ok: boolean; raison: string } | null
+      if (error || !res?.ok) {
+        const raison = res?.raison || 'inconnu'
+        const msgs: Record<string,string> = {
+          reponse_incorrecte: 'Réponse incorrecte à la question secrète.',
+          question_non_configuree: 'Aucune question secrète configurée.',
+          compte_introuvable: 'Numéro de téléphone introuvable.',
+        }
+        toast.error(msgs[raison] || 'Erreur lors de la réinitialisation.')
         setLoading(false)
         return
       }
       setEtape('succes')
     } catch {
-      toast.error('Erreur de connexion')
+      toast.error('Erreur de connexion. Vérifiez votre internet.')
     }
     setLoading(false)
   }

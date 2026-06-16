@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useSuperAdmin } from '../../lib/superAdminAuth'
-import { ShieldCheck, LayoutDashboard, Building2, KeyRound, Wallet, LogOut, Menu } from 'lucide-react'
+import { ShieldCheck, LayoutDashboard, Building2, KeyRound, Wallet, LogOut, Menu, FileText } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
@@ -9,6 +9,7 @@ const nav = [
   { to: '/admin/entreprises', label: 'Entreprises', icon: Building2 },
   { to: '/admin/licences', label: 'Licences', icon: KeyRound },
   { to: '/admin/paiements', label: 'Paiements', icon: Wallet },
+  { to: '/admin/journal', label: 'Journal connexions', icon: FileText },
 ]
 
 export default function SuperAdminLayout() {

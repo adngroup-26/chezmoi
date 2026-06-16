@@ -191,19 +191,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: getMessage(raison) }
       }
 
-      // ÉTAPE 2 : Chargement des données utilisateur
+      // ÉTAPE 2 : Chargement des données utilisateur via RPC (contourne RLS)
       const { data: userData, error: userError } = await supabase
-        .from('utilisateurs').select('*, roles(*)')
-        .eq('telephone', tel).eq('actif', true).single()
+        .rpc('charger_utilisateur', { p_telephone: tel })
 
-      if (userError || !userData) {
+      if (userError || !userData || userData.length === 0) {
         logger.error('[AUTH] Chargement utilisateur échoué:', userError)
-        await journaliser(tel, false, 'chargement_utilisateur_echoue')
-        return { error: getMessage('compte_introuvable') }
+        // Fallback : tentative directe
+        const { data: userData2, error: userError2 } = await supabase
+          .from('utilisateurs').select('*, roles(*)')
+          .eq('telephone', tel).eq('actif', true).single()
+        if (userError2 || !userData2) {
+          logger.error('[AUTH] Fallback échoué:', userError2)
+          await journaliser(tel, false, 'chargement_utilisateur_echoue')
+          return { error: getMessage('compte_introuvable') }
+        }
+        const userNormalise2 = await normaliserUtilisateur(userData2)
+        const entrepriseId2 = (userNormalise2 as unknown as { entreprise_id?: string }).entreprise_id
+        ecrireSession(userNormalise2)
+        setUtilisateur(userNormalise2)
+        await journaliser(tel, true, 'succes', entrepriseId2)
+        supabase.rpc('enregistrer_connexion', { p_telephone: tel }).then(() => {})
+        return {}
       }
 
-      // ÉTAPE 3 : Normalisation (roles, entreprise_id)
-      const userNormalise = await normaliserUtilisateur(userData)
+      const userNormalise = await normaliserUtilisateur(userData[0] as Record<string, unknown>)
       const entrepriseId = (userNormalise as unknown as { entreprise_id?: string }).entreprise_id
 
       // ÉTAPE 4 : Vérification de la licence

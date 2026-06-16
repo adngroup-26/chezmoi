@@ -27,6 +27,7 @@ import SuperAdminDashboard from './pages/admin/SuperAdminDashboard'
 import SuperAdminEntreprisesPage from './pages/admin/SuperAdminEntreprisesPage'
 import SuperAdminLicencesPage from './pages/admin/SuperAdminLicencesPage'
 import SuperAdminPaiementsPage from './pages/admin/SuperAdminPaiementsPage'
+import SuperAdminJournalPage from './pages/admin/SuperAdminJournalPage'
 
 function SuperAdminRoute({ children }: { children: JSX.Element }) {
   const { superAdmin, loading } = useSuperAdmin()
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="entreprises" element={<SuperAdminEntreprisesPage />} />
           <Route path="licences" element={<SuperAdminLicencesPage />} />
           <Route path="paiements" element={<SuperAdminPaiementsPage />} />
+          <Route path="journal" element={<SuperAdminJournalPage />} />
         </Route>
       </Routes>
     )

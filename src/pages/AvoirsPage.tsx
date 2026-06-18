@@ -308,14 +308,16 @@ export default function AvoirsPage() {
       }
 
       // 5. Journal d'audit
-      await supabase.from('audit_logs').insert({
-        entreprise_id: eid,
-        utilisateur_id: utilisateur?.id,
-        action: 'CREATE',
-        table_name: 'avoirs',
-        record_id: avoir.id,
-        nouvelles_valeurs: JSON.stringify({ numero, type: typeF, montant: montantAvoir, motif }),
-      }).catch(() => {})
+      try {
+        await supabase.from('audit_logs').insert({
+          entreprise_id: eid,
+          utilisateur_id: utilisateur?.id,
+          action: 'CREATE',
+          table_name: 'avoirs',
+          record_id: avoir.id,
+          nouvelles_valeurs: JSON.stringify({ numero, type: typeF, montant: montantAvoir, motif }),
+        })
+      } catch { /* le journal ne doit jamais bloquer l'opération */ }
 
       toast.success(`Avoir ${numero} créé — ${formatMontant(montantAvoir)} remboursé`)
       setConfirmModal(false)
@@ -584,7 +586,7 @@ export default function AvoirsPage() {
                     <th className="text-right p-2 text-xs text-gray-500">Montant</th>
                   </tr></thead>
                   <tbody>
-                    {(detailAvoir.details_avoirs || []).map(d => (
+                    {(detailAvoir.details_avoirs || []).map((d: DetailAvoir) => (
                       <tr key={d.id} className="border-t border-gray-50 dark:border-gray-700">
                         <td className="p-2 dark:text-gray-300">{d.article_nom}</td>
                         <td className="p-2 text-center dark:text-gray-300">{d.quantite}</td>

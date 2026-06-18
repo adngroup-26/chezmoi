@@ -156,12 +156,13 @@ export default function DashboardPage() {
       const debutMois = startOfMonth(now).toISOString()
       const debutAnnee = startOfYear(now).toISOString()
 
-      const [ventesRes, articlesRes, clientsRes, stockRes, parametresRes] = await Promise.all([
+      const [ventesRes, articlesRes, clientsRes, stockRes, parametresRes, avoirsRes] = await Promise.all([
         supabase.from('ventes').select('total, created_at, remise').eq('statut', 'validee').eq('entreprise_id', eid),
         supabase.from('articles').select('quantite, prix_achat, cout_unitaire, prix_vente, stock_minimum, nom').eq('actif', true).eq('entreprise_id', eid),
         supabase.from('clients').select('id', { count: 'exact', head: true }).eq('entreprise_id', eid),
         supabase.from('articles').select('nom, quantite, stock_minimum').eq('actif', true).eq('entreprise_id', eid),
-        supabase.from('parametres').select('*').eq('entreprise_id', eid)
+        supabase.from('parametres').select('*').eq('entreprise_id', eid),
+        supabase.from('avoirs').select('montant, created_at').eq('entreprise_id', eid)
       ])
 
       if (parametresRes.data) {
@@ -170,23 +171,34 @@ export default function DashboardPage() {
       }
 
       const ventes = ventesRes.data || []
+      const avoirs = avoirsRes.data || []
       const articles = articlesRes.data || []
       const filtrer = (depuis: string) => ventes.filter(v => v.created_at >= depuis)
-      const ca = (liste: typeof ventes) => liste.reduce((s, v) => s + (v.total || 0), 0)
+      const filtrerAvoirs = (depuis: string) => avoirs.filter(a => a.created_at >= depuis)
+      // CA net = somme des ventes validées - somme des avoirs de la période
+      // (les avoirs totaux annulent déjà la vente donc ne comptent plus dans `ventes`,
+      //  les avoirs partiels doivent être déduits explicitement)
+      const ca = (liste: typeof ventes, listeAvoirs: typeof avoirs) =>
+        liste.reduce((s, v) => s + (v.total || 0), 0) - listeAvoirs.reduce((s, a) => s + (a.montant || 0), 0)
       const valeurStock = articles.reduce((s, a) => s + (a.quantite * (a.cout_unitaire || 0)), 0)
       const alertes = (stockRes.data || []).filter(a => a.quantite <= a.stock_minimum)
 
+      const caJour = Math.max(0, ca(filtrer(debutJour), filtrerAvoirs(debutJour)))
+      const caSemaine = Math.max(0, ca(filtrer(debutSemaine), filtrerAvoirs(debutSemaine)))
+      const caMois = Math.max(0, ca(filtrer(debutMois), filtrerAvoirs(debutMois)))
+      const caAnnee = Math.max(0, ca(filtrer(debutAnnee), filtrerAvoirs(debutAnnee)))
+
       setStats({
-        ca_jour: ca(filtrer(debutJour)),
-        ca_semaine: ca(filtrer(debutSemaine)),
-        ca_mois: ca(filtrer(debutMois)),
-        ca_annee: ca(filtrer(debutAnnee)),
+        ca_jour: caJour,
+        ca_semaine: caSemaine,
+        ca_mois: caMois,
+        ca_annee: caAnnee,
         nb_ventes_jour: filtrer(debutJour).length,
         nb_ventes_mois: filtrer(debutMois).length,
         nb_clients: clientsRes.count || 0,
         nb_articles: articles.length,
         valeur_stock: valeurStock,
-        benefice_mois: ca(filtrer(debutMois)) * 0.2
+        benefice_mois: caMois * 0.2
       })
 
       setAlertesStock(alertes.slice(0, 5))
@@ -196,13 +208,17 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false }).limit(5)
       setVentesRecentes(recentes || [])
 
-      // Graphique : CA et nombre de ventes des 6 derniers mois
+      // Graphique : CA et nombre de ventes des 6 derniers mois (net des avoirs)
       const nowGraph = new Date()
       const debut6Mois = startOfDay(subMonths(startOfMonth(nowGraph), 5))
-      const { data: ventesGraphique } = await supabase
-        .from('ventes').select('total, created_at')
-        .eq('statut', 'validee').eq('entreprise_id', eid)
-        .gte('created_at', debut6Mois.toISOString())
+      const [{ data: ventesGraphique }, { data: avoirsGraphique }] = await Promise.all([
+        supabase.from('ventes').select('total, created_at')
+          .eq('statut', 'validee').eq('entreprise_id', eid)
+          .gte('created_at', debut6Mois.toISOString()),
+        supabase.from('avoirs').select('montant, created_at')
+          .eq('entreprise_id', eid)
+          .gte('created_at', debut6Mois.toISOString())
+      ])
 
       const mois6 = eachMonthOfInterval({ start: debut6Mois, end: nowGraph })
       const donnees = mois6.map(moisDate => {
@@ -210,9 +226,11 @@ export default function DashboardPage() {
         const debutM = startOfMonth(moisDate).toISOString()
         const finM = endOfMonth(moisDate).toISOString()
         const ventesM = (ventesGraphique || []).filter((v: { total: number; created_at: string }) => v.created_at >= debutM && v.created_at <= finM)
+        const avoirsM = (avoirsGraphique || []).filter((a: { montant: number; created_at: string }) => a.created_at >= debutM && a.created_at <= finM)
+        const caMois = ventesM.reduce((s, v) => s + (v.total || 0), 0) - avoirsM.reduce((s, a) => s + (a.montant || 0), 0)
         return {
           mois: label.charAt(0).toUpperCase() + label.slice(1),
-          ca: Math.round(ventesM.reduce((s, v) => s + (v.total || 0), 0)),
+          ca: Math.round(Math.max(0, caMois)),
           ventes: ventesM.length
         }
       })
@@ -242,12 +260,16 @@ export default function DashboardPage() {
     setExportLoading(true)
     try {
       const { debut, fin, label } = getPlagePeriode()
-      const { data: ventesPeriode } = await supabase
-        .from('ventes').select('numero, total, statut, created_at, clients(nom)')
-        .eq('entreprise_id', eid).gte('created_at', debut.toISOString()).lte('created_at', fin.toISOString())
-        .order('created_at', { ascending: true })
+      const [{ data: ventesPeriode }, { data: avoirsPeriode }] = await Promise.all([
+        supabase.from('ventes').select('numero, total, statut, created_at, clients(nom)')
+          .eq('entreprise_id', eid).gte('created_at', debut.toISOString()).lte('created_at', fin.toISOString())
+          .order('created_at', { ascending: true }),
+        supabase.from('avoirs').select('montant')
+          .eq('entreprise_id', eid).gte('created_at', debut.toISOString()).lte('created_at', fin.toISOString())
+      ])
       const ventesValidees = (ventesPeriode || []).filter(v => v.statut === 'validee')
-      const ca = ventesValidees.reduce((s, v) => s + (v.total || 0), 0)
+      const totalAvoirs = (avoirsPeriode || []).reduce((s, a) => s + (a.montant || 0), 0)
+      const ca = Math.max(0, ventesValidees.reduce((s, v) => s + (v.total || 0), 0) - totalAvoirs)
       telechargerRapportPDF({
         periodeLabel: label, genereLe: new Date(), ca, benefice: ca * 0.2,
         nbVentes: ventesValidees.length, nbClients: stats?.nb_clients || 0,

@@ -42,13 +42,38 @@ export default function VentesPage() {
     const [v, p] = await Promise.all([
       supabase
         .from('ventes')
-        .select('*, clients(nom, telephone), utilisateurs(nom), details_ventes(*, articles(nom, prix_vente))')
+        .select('*, clients(nom, telephone), utilisateurs(nom)')
         .eq('entreprise_id', eid)
         .order('created_at', { ascending: false })
         .limit(100),
       supabase.from('parametres').select('*').eq('entreprise_id', eid)
     ])
-    setVentes((v.data || []) as unknown as VenteRow[])
+
+    // Charge les details_ventes séparément pour éviter les problèmes de jointure RLS
+    const ventesBase = (v.data || []) as unknown as VenteRow[]
+    if (ventesBase.length > 0) {
+      const venteIds = ventesBase.map(v => v.id)
+      const { data: detailsData } = await supabase
+        .from('details_ventes')
+        .select('*, articles(nom, prix_vente)')
+        .in('vente_id', venteIds)
+
+      // Attache les détails à chaque vente
+      const detailsParVente: Record<string, VenteRow['details_ventes']> = {}
+      for (const d of (detailsData || [])) {
+        const det = d as unknown as { vente_id: string }
+        if (!detailsParVente[det.vente_id]) detailsParVente[det.vente_id] = []
+        detailsParVente[det.vente_id]!.push(d as unknown as VenteRow['details_ventes'][0])
+      }
+
+      const ventesAvecDetails = ventesBase.map(v => ({
+        ...v,
+        details_ventes: detailsParVente[v.id] || []
+      }))
+      setVentes(ventesAvecDetails)
+    } else {
+      setVentes([])
+    }
 
     if (p.data) {
       const params = Object.fromEntries(p.data.map(d => [d.cle, d.valeur || '']))
@@ -60,6 +85,31 @@ export default function VentesPage() {
       })
     }
     setLoading(false)
+  }
+
+  const ouvrirDetail = async (vente: VenteRow) => {
+    // Affiche d'abord la vente immédiatement (UX rapide)
+    setVenteDetail(vente)
+
+    // Recharge avec détails complets — deux requêtes séparées pour contourner les policies RLS sur les jointures
+    const { data: venteData } = await supabase
+      .from('ventes')
+      .select('*, clients(nom, telephone), utilisateurs(nom)')
+      .eq('id', vente.id)
+      .single()
+
+    const { data: detailsData } = await supabase
+      .from('details_ventes')
+      .select('*, articles(nom, prix_vente)')
+      .eq('vente_id', vente.id)
+
+    if (venteData) {
+      const venteComplete = {
+        ...(venteData as unknown as VenteRow),
+        details_ventes: (detailsData || []) as unknown as VenteRow['details_ventes']
+      }
+      setVenteDetail(venteComplete)
+    }
   }
 
   const filtres = ventes.filter(v =>
@@ -156,7 +206,7 @@ export default function VentesPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-400">{format(new Date(v.created_at), 'dd/MM/yy HH:mm', { locale: fr })}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setVenteDetail(v)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-gray-400 hover:text-blue-600 transition-colors">
+                      <button onClick={() => ouvrirDetail(v)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg text-gray-400 hover:text-blue-600 transition-colors">
                         <Eye size={14} />
                       </button>
                     </td>

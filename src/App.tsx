@@ -8,6 +8,7 @@ import InscriptionPage from './pages/InscriptionPage'
 import RenouvellementPage from './pages/RenouvellementPage'
 import AidePage from './pages/AidePage'
 import CommandesPage from './pages/CommandesPage'
+import AvoirsPage from './pages/AvoirsPage'
 import DashboardPage from './pages/DashboardPage'
 import ArticlesPage from './pages/ArticlesPage'
 import VentesPage from './pages/VentesPage'
@@ -128,6 +129,7 @@ export default function App() {
         <Route path="renouvellement" element={<ProtectedRoute adminOnly><RenouvellementPage /></ProtectedRoute>} />
         <Route path="aide" element={<AidePage />} />
         <Route path="commandes" element={<CommandesPage />} />
+        <Route path="avoirs" element={<AvoirsPage />} />
         <Route path="parametres" element={<ProtectedRoute adminOnly><ParametresPage /></ProtectedRoute>} />
       </Route>
     </Routes>

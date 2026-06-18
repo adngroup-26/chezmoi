@@ -175,16 +175,16 @@ export default function CommandesPage() {
 
     if (ve || !vente) { toast.error('Erreur lors de la création de la vente'); return }
 
-    // Crée les détails de vente
-    await supabase.from('details_ventes').insert(
+    // Crée les détails de vente — PAS de entreprise_id sur details_ventes
+    const { error: detErr } = await supabase.from('details_ventes').insert(
       details.map(d => ({
-        entreprise_id: eid,
         vente_id: vente.id,
         article_id: d.article_id || null,
         quantite: d.quantite,
         prix_unitaire: d.prix_unitaire,
       }))
     )
+    if (detErr) { toast.error('Erreur insertion détails vente'); return }
 
     // Déduit le stock pour chaque article
     for (const d of details) {

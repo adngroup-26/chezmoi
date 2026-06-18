@@ -164,3 +164,33 @@ export interface DetailCommande {
   prix_unitaire: number
   articles?: { nom: string; prix_vente: number; quantite: number }
 }
+
+export interface Avoir {
+  id: string
+  entreprise_id: string
+  numero: string
+  vente_id: string
+  client_id?: string
+  utilisateur_id?: string
+  type: 'partiel' | 'total'
+  statut: 'valide'
+  motif: string
+  commentaire?: string
+  montant: number
+  created_at: string
+  updated_at: string
+  ventes?: { numero: string; total: number }
+  clients?: { nom: string; telephone?: string }
+  utilisateurs?: { nom: string }
+  details_avoirs?: DetailAvoir[]
+}
+
+export interface DetailAvoir {
+  id: string
+  avoir_id: string
+  article_id?: string
+  article_nom: string
+  quantite: number
+  prix_unitaire: number
+  montant_ligne: number
+}

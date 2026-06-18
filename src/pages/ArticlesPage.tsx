@@ -17,7 +17,13 @@ export default function ArticlesPage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [articleEdit, setArticleEdit] = useState<Article | null>(null)
-  const [form, setForm] = useState({ reference: '', nom: '', categorie_id: '', prix_achat: 0, quantite: 0, transport: 0, prix_vente: 0, stock_minimum: 5, fournisseur_id: '' })
+  // quantite_achat = quantité du lot d'achat (pour calcul PR)
+  // quantite = stock actuel (ne doit pas servir au calcul PR)
+  const [form, setForm] = useState({
+    reference: '', nom: '', categorie_id: '',
+    prix_achat: 0, quantite: 0, quantite_achat: 0,
+    transport: 0, prix_vente: 0, stock_minimum: 5, fournisseur_id: ''
+  })
 
   useEffect(() => { if (eid) charger() }, [eid])
 
@@ -38,32 +44,78 @@ export default function ArticlesPage() {
 
   const ouvrirAjout = () => {
     setArticleEdit(null)
-    setForm({ reference: '', nom: '', categorie_id: '', prix_achat: 0, quantite: 0, transport: 0, prix_vente: 0, stock_minimum: 5, fournisseur_id: '' })
+    setForm({ reference: '', nom: '', categorie_id: '', prix_achat: 0, quantite: 0, quantite_achat: 0, transport: 0, prix_vente: 0, stock_minimum: 5, fournisseur_id: '' })
     setShowModal(true)
   }
 
   const ouvrirEdit = (a: Article) => {
     setArticleEdit(a)
-    setForm({ reference: a.reference || '', nom: a.nom, categorie_id: a.categorie_id || '', prix_achat: a.prix_achat, quantite: a.quantite, transport: a.transport, prix_vente: a.prix_vente, stock_minimum: a.stock_minimum, fournisseur_id: a.fournisseur_id || '' })
+    setForm({
+      reference: a.reference || '',
+      nom: a.nom,
+      categorie_id: a.categorie_id || '',
+      prix_achat: a.prix_achat,
+      quantite: a.quantite,
+      // En édition : on ne touche pas au cout_unitaire existant
+      // quantite_achat = 0 signifie "pas de nouveau lot, garder le PR actuel"
+      quantite_achat: 0,
+      transport: a.transport,
+      prix_vente: a.prix_vente,
+      stock_minimum: a.stock_minimum,
+      fournisseur_id: a.fournisseur_id || ''
+    })
     setShowModal(true)
   }
 
   const sauvegarder = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.nom || form.prix_vente <= 0) { toast.error('Nom et prix de vente requis'); return }
-    const data = {
-      ...form,
+
+    // Le cout_unitaire n'est recalculé QUE si :
+    // 1. C'est un nouvel article (quantite_achat > 0)
+    // 2. OU c'est une édition avec un nouveau lot saisi (prix_achat > 0 ET quantite_achat > 0)
+    let nouveauCoutUnitaire: number | undefined = undefined
+    const cEstUnNouveauLot = form.quantite_achat > 0 && form.prix_achat > 0
+
+    if (!articleEdit) {
+      // Création : calcul obligatoire
+      const qteBase = form.quantite_achat > 0 ? form.quantite_achat : form.quantite
+      nouveauCoutUnitaire = qteBase > 0
+        ? Math.round((form.prix_achat + form.transport) / qteBase)
+        : 0
+    } else if (cEstUnNouveauLot) {
+      // Édition avec nouveau lot renseigné : recalcul
+      nouveauCoutUnitaire = Math.round((form.prix_achat + form.transport) / form.quantite_achat)
+    }
+    // Sinon (édition simple sans nouveau lot) : cout_unitaire reste inchangé en base
+
+    const data: Record<string, unknown> = {
       reference: form.reference.trim() || null,
+      nom: form.nom,
       categorie_id: form.categorie_id || null,
       fournisseur_id: form.fournisseur_id || null,
-      cout_unitaire: Math.round(prixRevient(form.prix_achat, form.transport, form.quantite)),
-      entreprise_id: eid
+      prix_achat: form.prix_achat,
+      transport: form.transport,
+      prix_vente: form.prix_vente,
+      stock_minimum: form.stock_minimum,
+      entreprise_id: eid,
     }
+
+    // N'inclut cout_unitaire dans la mise à jour que si recalculé
+    if (nouveauCoutUnitaire !== undefined) {
+      data.cout_unitaire = nouveauCoutUnitaire
+    }
+
+    // En création seulement : on ajoute la quantité initiale
+    if (!articleEdit) {
+      data.quantite = form.quantite > 0 ? form.quantite : form.quantite_achat
+    }
+
     let error
     if (articleEdit) {
-      ({ error } = await supabase.from('articles').update(data).eq('id', articleEdit.id).eq('entreprise_id', eid))
+      ;({ error } = await supabase.from('articles').update(data).eq('id', articleEdit.id).eq('entreprise_id', eid))
     } else {
-      ({ error } = await supabase.from('articles').insert(data))
+      ;({ error } = await supabase.from('articles').insert(data))
     }
     if (error) { toast.error('Erreur lors de la sauvegarde'); return }
     toast.success(articleEdit ? 'Article modifié !' : 'Article ajouté !')
@@ -113,7 +165,7 @@ export default function ArticlesPage() {
                 {articlesFiltres.length === 0 ? (
                   <tr><td colSpan={6} className="text-center py-12 text-gray-400"><Package size={32} className="mx-auto mb-2 text-gray-300" />Aucun article trouvé</td></tr>
                 ) : articlesFiltres.map(a => {
-                  const pr = prixRevient(a.prix_achat, a.transport, a.quantite)
+                  const pr = a.cout_unitaire || 0
                   const alerte = a.quantite <= a.stock_minimum
                   return (
                     <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
@@ -162,11 +214,24 @@ export default function ArticlesPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Prix d'achat global du lot ({devise})</label><input type="number" min="0" value={form.prix_achat} onChange={e => setForm({...form, prix_achat: +e.target.value})} className="input-field" /></div>
                 <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Transport ({devise})</label><input type="number" min="0" value={form.transport} onChange={e => setForm({...form, transport: +e.target.value})} className="input-field" /></div>
-                <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Quantité</label><input type="number" min="0" value={form.quantite} onChange={e => setForm({...form, quantite: +e.target.value})} className="input-field" /></div>
+                {!articleEdit ? (
+                  <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Quantité du lot *</label><input type="number" min="0" value={form.quantite_achat || form.quantite} onChange={e => setForm({...form, quantite_achat: +e.target.value, quantite: +e.target.value})} className="input-field" /></div>
+                ) : (
+                  <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Qté nouveau lot <span className="text-gray-400">(0 = garder PR actuel)</span></label><input type="number" min="0" value={form.quantite_achat} onChange={e => setForm({...form, quantite_achat: +e.target.value})} className="input-field" /></div>
+                )}
               </div>
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Prix de revient unitaire = {formatMontant(prixRevient(form.prix_achat, form.transport, form.quantite))}</p>
-                <p className="text-xs text-blue-500 mt-0.5">(Prix d'achat global + Transport) ÷ Quantité du lot</p>
+                {articleEdit && form.quantite_achat === 0 ? (
+                  <>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Prix de revient actuel = {formatMontant(articleEdit.cout_unitaire || 0)} <span className="text-blue-400 font-normal">(figé)</span></p>
+                    <p className="text-xs text-blue-500 mt-0.5">Saisissez une quantité de nouveau lot pour recalculer le prix de revient</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Prix de revient unitaire = {formatMontant(Math.round((form.prix_achat + form.transport) / Math.max(1, form.quantite_achat || form.quantite)))}</p>
+                    <p className="text-xs text-blue-500 mt-0.5">(Prix d'achat global + Transport) ÷ Quantité du lot</p>
+                  </>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Prix de vente unitaire ({devise}) *</label><input type="number" min="0" value={form.prix_vente} onChange={e => setForm({...form, prix_vente: +e.target.value})} className="input-field" required /></div>

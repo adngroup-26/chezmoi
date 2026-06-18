@@ -263,16 +263,16 @@ export default function CaissePage() {
 
       if (venteError || !vente) throw new Error('Erreur création vente')
 
-      // Details
+      // Details — details_ventes n'a PAS de colonne entreprise_id
       const details = panier.map(p => ({
         vente_id: vente.id,
         article_id: p.article.id,
         quantite: p.quantite,
         prix_unitaire: p.article.prix_vente,
-        remise: p.remise
+        remise: Math.min(p.remise, p.article.prix_vente * p.quantite)
       }))
-      const detailsAvecEid = details.map(d => ({ ...d, entreprise_id: eid }))
-      await supabase.from('details_ventes').insert(detailsAvecEid)
+      const { error: detailsError } = await supabase.from('details_ventes').insert(details)
+      if (detailsError) throw new Error('Erreur insertion détails : ' + detailsError.message)
 
       // Mouvements stock
       const mouvements = panier.map(p => ({

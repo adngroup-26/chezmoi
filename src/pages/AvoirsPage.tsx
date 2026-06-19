@@ -449,7 +449,7 @@ export default function AvoirsPage() {
                     onKeyDown={e => e.key === 'Enter' && chercherVente()}
                     placeholder="Numéro de vente (ex: VT-250618-0001)"
                     className="input-field flex-1 text-sm" />
-                  <button onClick={chercherVente} disabled={chercheLoading} className="btn-primary px-4 text-sm">
+                  <button onClick={() => chercherVente()} disabled={chercheLoading} className="btn-primary px-4 text-sm">
                     {chercheLoading ? <div className="animate-spin h-4 w-4 border-b-2 border-white rounded-full" /> : <Search size={15} />}
                   </button>
                 </div>

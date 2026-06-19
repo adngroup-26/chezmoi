@@ -69,7 +69,10 @@ function genererPDFAvoir(avoir: Avoir, entreprise: InfosEntreprise, devise: stri
     doc.setTextColor(...(color as [number,number,number]))
     doc.text(t, x, ya)
   }
-  const fmt = (n: number) => new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' ' + devise
+  // Intl.NumberFormat('fr-FR') insère un espace insécable fin (U+202F) non supporté
+  // par la police par défaut de jsPDF (s'affiche comme "/"). On le remplace par un espace normal.
+  const fmt = (n: number) =>
+    new Intl.NumberFormat('fr-FR').format(Math.round(n)).replace(/[\u202F\u00A0]/g, ' ') + ' ' + devise
 
   // En-tête
   doc.setFillColor(27,43,75)

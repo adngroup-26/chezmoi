@@ -322,7 +322,7 @@ export default function VentesPage() {
                 )}
                 {peutFaireAvoir && venteDetail.statut === 'validee' && (
                   <button
-                    onClick={() => { setVenteDetail(null); navigate('/avoirs') }}
+                    onClick={() => { setVenteDetail(null); navigate(`/avoirs?vente=${encodeURIComponent(venteDetail.numero)}`) }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors"
                   >
                     <RotateCcw size={13} /> Faire un avoir

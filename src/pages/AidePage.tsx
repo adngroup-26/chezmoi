@@ -3,7 +3,7 @@ import {
   HelpCircle, ChevronDown, ChevronRight, Download,
   ShoppingCart, Package, Warehouse, Users, Truck,
   LayoutDashboard, BarChart3, Settings, Tag, Shield,
-  Wifi, FileText, Lock, ShoppingBag
+  Wifi, FileText, Lock, ShoppingBag, RotateCcw
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 
@@ -87,6 +87,50 @@ const SECTIONS: Section[] = [
       {
         titre: 'Filtrer et rechercher les commandes',
         contenu: 'Utilisez la barre de recherche pour trouver une commande par numéro (CMD-...) ou par nom de client. Les boutons de filtre permettent d\'afficher uniquement les commandes « En attente », « Confirmées » ou « Annulées ».'
+      },
+    ]
+  },
+  {
+    id: 'avoirs',
+    icon: RotateCcw,
+    titre: 'Avoirs & Retours clients',
+    couleur: 'red',
+    etapes: [
+      {
+        titre: 'Qu\'est-ce qu\'un avoir ?',
+        contenu: 'Un avoir permet d\'annuler tout ou partie d\'une vente déjà validée lorsqu\'un client retourne un ou plusieurs articles. Il réintègre automatiquement le stock, déduit le montant du chiffre d\'affaires et conserve une trace complète de l\'opération. Ce module est réservé aux Administrateurs et Gestionnaires — les Caissiers n\'y ont pas accès.'
+      },
+      {
+        titre: 'Créer un avoir',
+        contenu: 'Allez dans le menu « Avoirs / Retours » puis cliquez sur « Nouvel avoir ». Recherchez la vente concernée par son numéro (ex : VT-250618-0001). Une fois la vente trouvée, cochez les articles retournés par le client et indiquez la quantité retournée pour chacun.'
+      },
+      {
+        titre: 'Avoir partiel ou total',
+        contenu: 'Si vous ne sélectionnez qu\'une partie des articles, l\'avoir est automatiquement classé « Partiel » et la vente reste valide. Si vous cliquez sur « Tout sélectionner » ou cochez tous les articles avec leur quantité complète, l\'avoir devient « Total » et la vente originale est marquée comme annulée.'
+      },
+      {
+        titre: 'Motif obligatoire',
+        contenu: 'Avant de valider un avoir, vous devez impérativement choisir un motif parmi : Produit défectueux, Erreur de facturation, Erreur de quantité, Mauvais article livré, Changement d\'avis du client, Retour client, ou Autre. Un commentaire libre peut être ajouté en complément.'
+      },
+      {
+        titre: 'Confirmation de sécurité',
+        contenu: 'Avant validation finale, une fenêtre de confirmation récapitule l\'opération : montant de l\'avoir, nombre d\'articles réintégrés en stock, et impact sur la vente. Cette étape est obligatoire et ne peut pas être contournée.'
+      },
+      {
+        titre: 'Impact sur le stock',
+        contenu: 'Chaque article retourné est automatiquement réintégré dans le stock. Un mouvement de stock de type « Retour Client » est créé et visible dans l\'historique des mouvements et l\'inventaire.'
+      },
+      {
+        titre: 'Impact sur le chiffre d\'affaires',
+        contenu: 'Le montant de chaque avoir est automatiquement déduit du chiffre d\'affaires sur le tableau de bord (jour, semaine, mois, année) ainsi que dans le graphique d\'évolution et les rapports PDF exportés.'
+      },
+      {
+        titre: 'Document PDF d\'avoir',
+        contenu: 'Depuis l\'historique des avoirs, cliquez sur l\'icône œil pour voir le détail, puis sur « Télécharger PDF avoir ». Le document généré porte la mention « DOCUMENT D\'AVOIR » et contient le numéro d\'avoir, la référence de la vente originale, le client, les articles retournés, le motif et le montant.'
+      },
+      {
+        titre: 'Historique et traçabilité',
+        contenu: 'Tous les avoirs sont conservés définitivement — aucune suppression n\'est possible. L\'historique affiche le numéro d\'avoir, la vente de référence, le client, le motif, le type (partiel/total), le montant et l\'utilisateur ayant effectué l\'opération.'
       },
     ]
   },
@@ -286,13 +330,14 @@ function genererNoticePDF() {
     '2. Tableau de bord',
     '3. Caisse et Ventes',
     '4. Commandes',
-    '5. Articles',
-    '6. Gestion du stock',
-    '7. Clients',
-    '8. Fournisseurs',
-    '9. Utilisateurs et Acces',
-    '10. Mode hors ligne',
-    '11. Licence et Abonnement',
+    '5. Avoirs et Retours',
+    '6. Articles',
+    '7. Gestion du stock',
+    '8. Clients',
+    '9. Fournisseurs',
+    '10. Utilisateurs et Acces',
+    '11. Mode hors ligne',
+    '12. Licence et Abonnement',
   ]
 
   doc.setFont('helvetica', 'normal')

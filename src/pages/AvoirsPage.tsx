@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { telechargerRecuPDF, InfosEntreprise } from '../lib/recu'
 import jsPDF from 'jspdf'
+import { useSearchParams } from 'react-router-dom'
 
 // ── Motifs prédéfinis ─────────────────────────────────────────────────────
 const MOTIFS = [
@@ -152,6 +153,7 @@ function genererPDFAvoir(avoir: Avoir, entreprise: InfosEntreprise, devise: stri
 // ── COMPOSANT PRINCIPAL ────────────────────────────────────────────────────
 export default function AvoirsPage() {
   const { eid } = useEntreprise()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { formatMontant, devise } = useDevise()
   const { utilisateur, isAdmin } = useAuth()
   const isGestionnaire = utilisateur?.roles?.nom === 'gestionnaire'
@@ -179,6 +181,19 @@ export default function AvoirsPage() {
 
   useEffect(() => { charger() }, [eid])
 
+  // Ouverture automatique depuis l'historique des ventes (?vente=VT-...)
+  useEffect(() => {
+    const numeroVente = searchParams.get('vente')
+    if (numeroVente && eid && peutFaireAvoir) {
+      setVenteCherche(numeroVente)
+      setModalAvoir(true)
+      chercherVente(numeroVente)
+      // Nettoie l'URL pour éviter une réouverture si l'utilisateur revient en arrière
+      setSearchParams({}, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eid])
+
   async function charger() {
     if (!eid) return
     setLoading(true)
@@ -198,14 +213,15 @@ export default function AvoirsPage() {
   }
 
   // Recherche vente par numéro
-  async function chercherVente() {
-    if (!venteCherche.trim()) return
+  async function chercherVente(numeroDirect?: string) {
+    const recherche = (numeroDirect ?? venteCherche).trim()
+    if (!recherche) return
     setChercheLoading(true)
     const { data: vente } = await supabase
       .from('ventes')
       .select('*, clients(id, nom, telephone)')
       .eq('entreprise_id', eid)
-      .ilike('numero', `%${venteCherche.trim()}%`)
+      .ilike('numero', `%${recherche}%`)
       .eq('statut', 'validee')
       .single()
 
